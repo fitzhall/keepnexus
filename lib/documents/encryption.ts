@@ -143,7 +143,7 @@ export class DocumentEncryptionService {
       const decryptedData = await crypto.subtle.decrypt(
         {
           name: this.ALGORITHM,
-          iv: encryptedDoc.nonce
+          iv: encryptedDoc.nonce as BufferSource
         },
         key,
         encryptedDoc.encryptedData
