@@ -124,7 +124,7 @@ export default function HeirsPage() {
                 🎮 Run Inheritance Drill
               </button>
               <p className="hidden lg:block text-xs text-gray-500 mt-3">
-                Test heirs' ability to access funds in a simulated scenario
+                Test heirs&apos; ability to access funds in a simulated scenario
               </p>
             </div>
             <div className="lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200 lg:p-6">

@@ -83,7 +83,7 @@ export default function SimpleDashboard() {
         {/* Action Buttons */}
         <div className="flex flex-wrap gap-4">
           <button className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors">
-            👋 I'M ALIVE
+            👋 I&apos;M ALIVE
           </button>
           <button className="px-6 py-3 bg-white text-gray-900 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
             📄 Send Lawyer

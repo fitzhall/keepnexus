@@ -16,7 +16,6 @@ import {
   XCircle,
   Zap,
   Lock,
-  Eye,
   Trash2
 } from 'lucide-react'
 import Link from 'next/link'

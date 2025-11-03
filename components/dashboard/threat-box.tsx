@@ -14,7 +14,6 @@ import {
   XCircle,
   ArrowRight,
   TrendingUp,
-  Lock,
   Eye
 } from 'lucide-react'
 
@@ -104,7 +103,7 @@ export function ThreatBox({
   const StatusIcon = statusInfo.icon
 
   const [isHovered, setIsHovered] = React.useState(false)
-  const [showDetails, setShowDetails] = React.useState(false)
+  const [_showDetails, _setShowDetails] = React.useState(false)
 
   return (
     <m.div

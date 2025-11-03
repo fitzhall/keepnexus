@@ -46,7 +46,7 @@ export class ShamirService {
   }
 
   // Verify share integrity (mock)
-  async verifyShare(shareId: number): Promise<boolean> {
+  async verifyShare(_shareId: number): Promise<boolean> {
     await new Promise(resolve => setTimeout(resolve, 500))
     return true // Mock - always valid
   }

@@ -53,7 +53,7 @@ export default function ForeverPage() {
 
               <div className="border border-gray-200 rounded-lg p-4 lg:p-5">
                 <div className="flex items-center justify-between mb-2">
-                  <p className="font-medium text-gray-900 lg:text-lg">Dead Man's Switch</p>
+                  <p className="font-medium text-gray-900 lg:text-lg">Dead Man&apos;s Switch</p>
                   <span className="text-sm text-green-600 lg:text-base">Active</span>
                 </div>
                 <p className="text-sm text-gray-700 lg:text-base">

@@ -12,14 +12,13 @@ import {
   X,
   Eye,
   Trash2,
-  Share2,
   AlertTriangle,
   FileCheck,
   Clock,
   ShieldCheck
 } from 'lucide-react'
 import Link from 'next/link'
-import { documentEncryption, DocumentType, type DocumentMetadata } from '@/lib/documents/encryption'
+import { documentEncryption, DocumentType } from '@/lib/documents/encryption'
 import { documentStorage, type StoredDocument } from '@/lib/documents/storage'
 import { walletService } from '@/lib/bitcoin/wallet'
 
@@ -512,7 +511,7 @@ export default function TrustPage() {
           <div className="bg-white rounded-lg max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Secure Your Document</h3>
             <p className="text-sm text-gray-600 mb-4">
-              Enter a password to encrypt "{pendingFile?.name}". You'll need this password and your wallet to decrypt it later.
+              Enter a password to encrypt &quot;{pendingFile?.name}&quot;. You&apos;ll need this password and your wallet to decrypt it later.
             </p>
             <input
               type="password"

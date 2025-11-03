@@ -166,7 +166,7 @@ export class DocumentStorageService {
   }
 
   // Check if heir has access (mock for now)
-  private checkHeirAccess(userId: string, documentId: string): boolean {
+  private checkHeirAccess(_userId: string, _documentId: string): boolean {
     // In production, this would check:
     // 1. Is user listed as heir?
     // 2. Has dead man's switch triggered?

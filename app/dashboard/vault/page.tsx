@@ -272,10 +272,10 @@ export default function VaultPage() {
                           <div>
                             <h3 className="font-semibold text-gray-900">Create Shamir Secret Shares?</h3>
                             <p className="text-sm text-gray-600 mt-2">
-                              This will split your master key into 5 shares. You'll need any 3 shares to recover your keys.
+                              This will split your master key into 5 shares. You&apos;ll need any 3 shares to recover your keys.
                             </p>
                             <p className="text-sm text-gray-600 mt-2">
-                              Make sure you're in a secure environment and ready to safely distribute the shares.
+                              Make sure you&apos;re in a secure environment and ready to safely distribute the shares.
                             </p>
                           </div>
                         </div>

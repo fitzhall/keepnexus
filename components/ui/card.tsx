@@ -1,7 +1,7 @@
 'use client'
 
 import * as React from 'react'
-import { m, HTMLMotionProps } from 'framer-motion'
+import { HTMLMotionProps } from 'framer-motion'
 import { cn } from '@/lib/utils/cn'
 import { GlassPanel } from './glass-panel'
 

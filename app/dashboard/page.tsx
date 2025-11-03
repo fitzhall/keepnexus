@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import {
   Home, Users, Shield, Bell, Calendar, Settings, BarChart3,
-  Infinity, Lock, Wallet, CheckCircle, AlertTriangle, XCircle, Zap
+  Lock, Wallet, CheckCircle, AlertTriangle, XCircle, Zap
 } from 'lucide-react'
 import Link from 'next/link'
 import { walletService, WalletStatus } from '@/lib/bitcoin/wallet'
@@ -144,7 +144,7 @@ export default function DashboardPage() {
         {/* I'm Alive Button */}
         <div className="px-6 mb-8">
           <button className="w-full py-4 border-2 border-gray-300 rounded-full text-lg font-medium hover:bg-gray-50 transition-colors">
-            I'M ALIVE
+            I&apos;M ALIVE
           </button>
         </div>
 
@@ -234,7 +234,7 @@ export default function DashboardPage() {
               </div>
               <div className="text-right">
                 <button className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium">
-                  👋 I'm Alive
+                  👋 I&apos;m Alive
                 </button>
                 <p className="text-xs text-gray-500 mt-2">Last heartbeat: 2 hours ago</p>
               </div>
