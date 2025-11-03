@@ -1,0 +1,544 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import {
+  Home, Users, Shield, Bell, Calendar, Settings, BarChart3,
+  Infinity, Lock, Wallet, CheckCircle, AlertTriangle, XCircle, Zap
+} from 'lucide-react'
+import Link from 'next/link'
+import { walletService, WalletStatus } from '@/lib/bitcoin/wallet'
+import { multisigService, MultisigConfig, PendingApproval } from '@/lib/bitcoin/multisig'
+import { securityScoreService } from '@/lib/security/score'
+
+export default function DashboardPage() {
+  const [threatScore, setThreatScore] = useState(0)
+  const [wallet, setWallet] = useState<WalletStatus>({ connected: false })
+  const [connecting, setConnecting] = useState(false)
+  const [multisig, setMultisig] = useState<MultisigConfig | null>(null)
+  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([])
+  const [settingUpMultisig, setSettingUpMultisig] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [approvingId, setApprovingId] = useState<string | null>(null)
+
+  // Navigation items for mobile view and quick nav
+  const navItems = [
+    { icon: Home, label: 'Vault', route: '/dashboard/vault' },
+    { icon: Users, label: 'Heirs', route: '/dashboard/heirs' },
+    { icon: Shield, label: 'Trust', route: '/dashboard/trust' },
+    { icon: Bell, label: 'Drills', route: '/dashboard/drills' },
+    { icon: Calendar, label: 'Next rotation:\nNov 14', route: '/dashboard/schedule' },
+    { icon: Settings, label: 'Captain', route: '/dashboard/captain' },
+    { icon: BarChart3, label: 'Tax CSV\nready', route: '/dashboard/tax' },
+    { icon: Zap, label: 'Governator™', route: '/dashboard/governator' }
+  ]
+
+  // Governator permissions matrix
+  const permissions = {
+    'Spend': { Wife: true, Kid16: true, D: false },
+    'Claim': { Wife: true, Kid16: true, D: false },
+    'Re-key': { Wife: true, Kid16: false, D: false }
+  }
+
+  // Calculate threat score on mount and when security factors change
+  useEffect(() => {
+    const score = securityScoreService.calculateScore()
+    setThreatScore(score.threatScore)
+  }, [wallet, multisig, pendingApprovals])
+
+  const handleConnectWallet = async () => {
+    setError(null)
+    setConnecting(true)
+    try {
+      const status = await walletService.connect()
+      setWallet(status)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to connect wallet')
+      console.error('Wallet connection error:', err)
+    } finally {
+      setConnecting(false)
+    }
+  }
+
+  const handleDisconnect = async () => {
+    setError(null)
+    try {
+      await walletService.disconnect()
+      setWallet({ connected: false })
+      setMultisig(null)
+      setPendingApprovals([])
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to disconnect wallet')
+      console.error('Wallet disconnection error:', err)
+    }
+  }
+
+  const handleSetupMultisig = async () => {
+    setError(null)
+    setSettingUpMultisig(true)
+    try {
+      const signers = multisigService.getDefaultSigners()
+      const config = await multisigService.setupMultisig(signers)
+      setMultisig(config)
+      setPendingApprovals(multisigService.getPendingApprovals())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to setup multisig')
+      console.error('Multisig setup error:', err)
+    } finally {
+      setSettingUpMultisig(false)
+    }
+  }
+
+  const handleApprove = async (approvalId: string) => {
+    setError(null)
+    setApprovingId(approvalId)
+    try {
+      await multisigService.approve(approvalId)
+      setPendingApprovals(multisigService.getPendingApprovals())
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to approve transaction')
+      console.error('Approval error:', err)
+    } finally {
+      setApprovingId(null)
+    }
+  }
+
+  const getStatusIcon = (status: 'green' | 'yellow' | 'red') => {
+    switch (status) {
+      case 'green':
+        return <CheckCircle className="w-4 h-4 text-green-600 inline ml-2" />
+      case 'yellow':
+        return <AlertTriangle className="w-4 h-4 text-yellow-600 inline ml-2" />
+      case 'red':
+        return <XCircle className="w-4 h-4 text-red-600 inline ml-2" />
+    }
+  }
+
+  const allGreen = wallet.connected && multisig && pendingApprovals.filter(a => a.status === 'pending').length === 0
+
+  return (
+    <>
+      {/* Mobile View - Only shows on small screens */}
+      <div className="block lg:hidden min-h-screen bg-white flex flex-col">
+        {/* Status Bar (simulated) */}
+        <div className="flex justify-between items-center px-4 py-2 text-xs text-gray-600">
+          <span>9:41</span>
+          <span>5G</span>
+        </div>
+
+        {/* Header */}
+        <div className="text-center px-6 pt-4 pb-6">
+          <h1 className="text-3xl font-bold tracking-wide mb-2">KEEP NEXUS</h1>
+          <p className="text-gray-600">Chen Family · Threat Score {threatScore}</p>
+          <div className="flex items-center justify-center gap-2 mt-2">
+            <Lock className="w-4 h-4 text-gray-500" />
+            <span className="text-gray-500 text-sm">Locked Forever</span>
+          </div>
+        </div>
+
+        {/* Threat Score Display */}
+        <div className="text-center py-8">
+          <div className="text-8xl font-light">{threatScore}</div>
+          <p className="text-gray-600 mt-2">Threats detected</p>
+        </div>
+
+        {/* I'm Alive Button */}
+        <div className="px-6 mb-8">
+          <button className="w-full py-4 border-2 border-gray-300 rounded-full text-lg font-medium hover:bg-gray-50 transition-colors">
+            I'M ALIVE
+          </button>
+        </div>
+
+        {/* Navigation Grid */}
+        <div className="grid grid-cols-4 gap-4 px-6 mb-8">
+          {navItems.map((item, index) => (
+            <Link
+              key={index}
+              href={item.route}
+              className="flex flex-col items-center justify-center py-3 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <item.icon className="w-8 h-8 mb-2 text-gray-700" />
+              <span className="text-xs text-center text-gray-600 whitespace-pre-line">
+                {item.label}
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        {/* Governator Matrix */}
+        <div className="px-6 pb-6">
+          <h2 className="text-center text-lg font-semibold mb-4">GOVERNATOR</h2>
+          <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left p-3 text-sm font-normal text-gray-600"></th>
+                  <th className="text-center p-3 text-sm font-normal text-gray-600">Wife</th>
+                  <th className="text-center p-3 text-sm font-normal text-gray-600">Kid16</th>
+                  <th className="text-center p-3 text-sm font-normal text-gray-600">D</th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(permissions).map(([action, perms]) => (
+                  <tr key={action} className="border-b border-gray-100 last:border-0">
+                    <td className="p-3 text-sm text-gray-700">{action}</td>
+                    {Object.entries(perms).map(([person, allowed]) => (
+                      <td key={person} className="text-center p-3">
+                        {allowed ? (
+                          <span className="text-green-600 text-lg">✓</span>
+                        ) : (
+                          <span className="text-gray-400 text-lg">✗</span>
+                        )}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-auto border-t border-gray-200 py-4">
+          <div className="text-center text-xs text-gray-500">
+            keep.chen.com
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop View - Only shows on large screens */}
+      <div className="hidden lg:block min-h-screen bg-gray-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+          {/* Header with Threat Score */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+            <div className="flex items-start justify-between mb-4">
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">KEEP NEXUS</h1>
+                <p className="text-sm text-gray-600 mt-1">Chen Family</p>
+              </div>
+              <div className="text-center">
+                <div className="text-5xl font-light mb-2">{threatScore}</div>
+                <p className="text-sm text-gray-600">Threats detected</p>
+                <div className="flex items-center gap-2 justify-center mt-2">
+                  {allGreen ? (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                      <span className="text-xs font-medium text-green-600">All systems secure</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse"></span>
+                      <span className="text-xs font-medium text-yellow-600">Action required</span>
+                    </>
+                  )}
+                </div>
+              </div>
+              <div className="text-right">
+                <button className="px-6 py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium">
+                  👋 I'm Alive
+                </button>
+                <p className="text-xs text-gray-500 mt-2">Last heartbeat: 2 hours ago</p>
+              </div>
+            </div>
+
+            {/* Wallet Status */}
+            <div className="border-t border-gray-100 pt-4">
+              {wallet.connected ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Wallet className="w-4 h-4 text-gray-600" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">
+                        Wallet Connected
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {wallet.address?.slice(0, 8)}...{wallet.address?.slice(-6)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-medium text-gray-900">
+                      {wallet.balance ? walletService.formatBTC(wallet.balance) : '0'} BTC
+                    </p>
+                    <button
+                      onClick={handleDisconnect}
+                      className="text-xs text-gray-500 hover:text-gray-700 underline"
+                    >
+                      Disconnect
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={handleConnectWallet}
+                  disabled={connecting}
+                  className="w-full py-2 bg-gray-900 text-white rounded-md hover:bg-gray-800 transition-colors text-sm font-medium disabled:bg-gray-400"
+                >
+                  {connecting ? 'Connecting...' : '🔗 Connect Wallet'}
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Error Display */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-2">
+                <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="text-sm font-medium text-red-800">Error</p>
+                  <p className="text-sm text-red-700">{error}</p>
+                  <button
+                    onClick={() => setError(null)}
+                    className="text-xs text-red-600 hover:text-red-800 underline mt-1"
+                  >
+                    Dismiss
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Main Status Cards */}
+            <div className="space-y-4">
+              {/* K - Security */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    K – Keep it Secure
+                  </h2>
+                  {getStatusIcon(wallet.connected ? 'green' : 'yellow')}
+                </div>
+                <div className="space-y-2 text-sm text-gray-600">
+                  {wallet.connected ? (
+                    <>
+                      <div className="flex items-start">
+                        <span className="text-gray-400 mr-2">•</span>
+                        <span>Wallet connected: {multisig ? `${multisig.type} multisig` : 'Single signature'}</span>
+                      </div>
+                      {multisig ? (
+                        <>
+                          <div className="flex items-start">
+                            <span className="text-gray-400 mr-2">•</span>
+                            <span>Signers: {multisig.signers.map(s => s.name).join(', ')}</span>
+                          </div>
+                          {pendingApprovals.filter(a => a.status === 'pending').length > 0 && (
+                            <div className="flex items-start">
+                              <span className="text-yellow-600 mr-2">⚠</span>
+                              <span className="text-yellow-600">{pendingApprovals.filter(a => a.status === 'pending').length} pending approval{pendingApprovals.filter(a => a.status === 'pending').length > 1 ? 's' : ''}</span>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="mt-2">
+                          <button
+                            onClick={handleSetupMultisig}
+                            disabled={settingUpMultisig}
+                            className="text-xs bg-gray-100 hover:bg-gray-200 px-3 py-1 rounded-md transition-colors"
+                          >
+                            {settingUpMultisig ? 'Detecting...' : '🔐 Import Multisig Setup'}
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-start">
+                        <span className="text-gray-400 mr-2">•</span>
+                        <span>Key rotation scheduled: Nov 14</span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-start">
+                      <span className="text-yellow-600 mr-2">⚠</span>
+                      <span className="text-yellow-600">Connect wallet to enable security features</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* E - Legal */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    E – Establish Legal Protection
+                  </h2>
+                  {getStatusIcon('yellow')}
+                </div>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-start">
+                    <span className="text-gray-400 mr-2">•</span>
+                    <span>Living Trust notarized 3 weeks ago</span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="text-gray-400 mr-2">•</span>
+                    <span>Beneficiaries: Alice 60% · Bob 30% · Charity 10%</span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="text-yellow-600 mr-2">⚠</span>
+                    <span className="text-yellow-600">Trust document needs annual review</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* E - Access */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    E – Ensure Access
+                  </h2>
+                  {getStatusIcon('green')}
+                </div>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-start">
+                    <span className="text-gray-400 mr-2">•</span>
+                    <span>All heirs completed 7-minute training course</span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="text-gray-400 mr-2">•</span>
+                    <span>Last inheritance drill: October 18 (all passed)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* P - Future */}
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+                <div className="flex items-start justify-between mb-3">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    P – Plan for the Future
+                  </h2>
+                  {getStatusIcon('red')}
+                </div>
+                <div className="space-y-2 text-sm text-gray-600">
+                  <div className="flex items-start">
+                    <span className="text-gray-400 mr-2">•</span>
+                    <span>CPA report scheduled: auto-sends in 12 days</span>
+                  </div>
+                  <div className="flex items-start">
+                    <span className="text-red-600 mr-2">⚠</span>
+                    <span className="text-red-600">IRS regulation update requires trust amendment</span>
+                  </div>
+                  <div className="ml-6">
+                    <button className="text-xs text-blue-600 hover:text-blue-700 underline">
+                      → Fix with one click
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Pending Approvals */}
+          {pendingApprovals.filter(a => a.status === 'pending').length > 0 && (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
+              <h3 className="text-sm font-semibold text-gray-900 mb-3">Pending Approvals</h3>
+              <div className="space-y-2">
+                {pendingApprovals.map((approval) => (
+                  <div key={approval.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div>
+                      <p className="text-sm text-gray-900">{approval.description}</p>
+                      <p className="text-xs text-gray-500">
+                        {approval.currentSigners}/{approval.requiredSigners} signatures
+                      </p>
+                    </div>
+                    {approval.status === 'pending' ? (
+                      <button
+                        onClick={() => handleApprove(approval.id)}
+                        disabled={approvingId === approval.id}
+                        className="text-xs bg-gray-900 text-white px-3 py-1 rounded-md hover:bg-gray-800 transition-colors disabled:opacity-50"
+                      >
+                        {approvingId === approval.id ? 'Approving...' : 'Approve'}
+                      </button>
+                    ) : (
+                      <span className="text-xs text-green-600">✓ Approved</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Quick Navigation & Governator */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
+            {/* Quick Navigation */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <p className="text-sm font-semibold text-gray-900 mb-4">Quick Navigation</p>
+              <div className="grid grid-cols-4 gap-4">
+                {navItems.map((item, index) => (
+                  <Link
+                    key={index}
+                    href={item.route}
+                    className="flex flex-col items-center justify-center py-3 hover:bg-gray-50 rounded-lg transition-colors"
+                  >
+                    <item.icon className="w-6 h-6 mb-2 text-gray-700" />
+                    <span className="text-xs text-center text-gray-600">
+                      {item.label.split('\n')[0]}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Governator Matrix */}
+            <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-sm font-semibold text-gray-900 mb-4">GOVERNATOR</h2>
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200">
+                      <th className="text-left p-2 text-xs font-normal text-gray-600"></th>
+                      <th className="text-center p-2 text-xs font-normal text-gray-600">Wife</th>
+                      <th className="text-center p-2 text-xs font-normal text-gray-600">Kid16</th>
+                      <th className="text-center p-2 text-xs font-normal text-gray-600">D</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(permissions).map(([action, perms]) => (
+                      <tr key={action} className="border-b border-gray-100 last:border-0">
+                        <td className="p-2 text-xs text-gray-700">{action}</td>
+                        {Object.entries(perms).map(([person, allowed]) => (
+                          <td key={person} className="text-center p-2">
+                            {allowed ? (
+                              <span className="text-green-600">✓</span>
+                            ) : (
+                              <span className="text-gray-400">✗</span>
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mt-6">
+            <p className="text-sm text-gray-600 mb-4">Quick actions</p>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <button className="px-4 py-3 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                📄 Send to Lawyer
+              </button>
+              <button className="px-4 py-3 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                🎮 Run Drill Tonight
+              </button>
+              <button className="px-4 py-3 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium">
+                📊 Generate Report
+              </button>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="mt-8 text-center">
+            <p className="text-xs text-gray-500">
+              keep.chen.com · Updated {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+            </p>
+            <p className="text-xs text-gray-500 mt-1">
+              Questions? Contact support@keep.co or call 1-800-KEEP-BTC
+            </p>
+          </div>
+        </div>
+      </div>
+    </>
+  )
+}

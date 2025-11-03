@@ -1,0 +1,229 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import {
+  ArrowLeft, Wallet, Shield, Key, RefreshCw,
+  Download, Upload, Share2, AlertTriangle, CheckCircle
+} from 'lucide-react'
+import Link from 'next/link'
+import { shamirService, ShamirConfig } from '@/lib/bitcoin/shamir'
+
+export default function VaultPage() {
+  const [walletConnected] = useState(true)
+  const [shamir, setShamir] = useState<ShamirConfig | null>(null)
+  const [showShamir, setShowShamir] = useState(false)
+  const [showBackup, setShowBackup] = useState(false)
+  const [creatingShares, setCreatingShares] = useState(false)
+
+  const balance = '0.21'
+  const address = 'bc1q...fjhx0wlh'
+
+  useEffect(() => {
+    // Load existing Shamir config if available
+    const config = shamirService.getConfig()
+    if (config) {
+      setShamir(config)
+    }
+  }, [])
+
+  const handleCreateShares = async () => {
+    setCreatingShares(true)
+    const config = await shamirService.createShares(3, 5)
+    setShamir(config)
+    setCreatingShares(false)
+    setShowShamir(true)
+  }
+
+  return (
+    <div className="min-h-screen bg-white lg:bg-gray-50">
+      <div className="max-w-md mx-auto lg:max-w-6xl">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 lg:px-6 lg:py-6 lg:mb-6 lg:border-0">
+          <Link href="/dashboard" className="lg:hidden">
+            <ArrowLeft className="w-6 h-6 text-gray-700" />
+          </Link>
+          <h1 className="text-lg font-semibold lg:text-2xl lg:font-bold">
+            <span className="hidden lg:inline">Bitcoin </span>Vault
+          </h1>
+          <div className="w-6 lg:w-auto">
+            <Link href="/dashboard" className="hidden lg:inline-flex px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+              ← Back to Dashboard
+            </Link>
+          </div>
+        </div>
+
+        <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:px-6">
+        {/* Left Column */}
+        <div className="space-y-0 lg:space-y-6">
+          {/* Wallet Status */}
+          <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Wallet className="w-5 h-5 text-gray-600" />
+                <div>
+                  <p className="text-sm font-medium">Wallet Connected</p>
+                  <p className="text-xs text-gray-500">{address}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-lg font-semibold">{balance} BTC</p>
+                <p className="text-xs text-gray-500">~$21,000</p>
+              </div>
+            </div>
+            {walletConnected && (
+              <button className="w-full py-2 text-sm text-gray-600 hover:text-gray-800">
+                Disconnect
+              </button>
+            )}
+          </div>
+
+          {/* Multisig Status */}
+          <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <Shield className="w-5 h-5 text-green-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium lg:text-base">2-of-3 Multisig Active</p>
+                <p className="text-xs text-gray-500 lg:text-sm">Last rotation: Oct 18</p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">You</span>
+                <span className="text-green-600">✓ Active</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Wife</span>
+                <span className="text-green-600">✓ Active</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Trusted Friend</span>
+                <span className="text-green-600">✓ Active</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Rotation Schedule */}
+          <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <RefreshCw className="w-5 h-5 text-gray-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Next Key Rotation</p>
+                <p className="text-xs text-gray-500">November 14, 2025</p>
+              </div>
+            </div>
+            <button className="w-full py-3 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800">
+              Schedule Rotation
+            </button>
+          </div>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-0 lg:space-y-6">
+          {/* Shamir Shares */}
+          <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <Share2 className="w-5 h-5 text-gray-600" />
+              <div className="flex-1">
+                <p className="text-sm font-medium">Shamir Secret Shares</p>
+                <p className="text-xs text-gray-500">
+                  {shamir ? `${shamir.threshold}-of-${shamir.totalShares} active` : 'Not configured'}
+                </p>
+              </div>
+            </div>
+
+            {!shamir ? (
+              <button
+                onClick={handleCreateShares}
+                disabled={creatingShares}
+                className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700"
+              >
+                {creatingShares ? 'Creating Shares...' : 'Create Shamir Shares'}
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <button
+                  onClick={() => setShowShamir(!showShamir)}
+                  className="w-full py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                >
+                  {showShamir ? 'Hide' : 'View'} Shares
+                </button>
+
+                {showShamir && (
+                  <div className="space-y-2 pt-2 border-t">
+                    {shamir.shares.map(share => (
+                      <div key={share.id} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600">Share #{share.id}: {share.holder}</span>
+                        {share.status === 'distributed' ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <AlertTriangle className="w-4 h-4 text-yellow-600" />
+                        )}
+                      </div>
+                    ))}
+                    <p className="text-xs text-gray-500 pt-2">
+                      Need {shamir.threshold} shares to recover
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Backup & Recovery */}
+          <div className="px-6 py-6 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <Key className="w-5 h-5 text-gray-600" />
+              <p className="text-sm font-medium">Backup & Recovery</p>
+            </div>
+            <div className="space-y-3">
+              <button
+                onClick={() => setShowBackup(!showBackup)}
+                className="w-full py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center gap-2"
+              >
+                <Download className="w-4 h-4" />
+                Export Backup
+              </button>
+
+              {showBackup && (
+                <div className="space-y-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-xs font-medium text-yellow-800">Security Warning</p>
+                      <p className="text-xs text-yellow-700 mt-1">
+                        Store backup in multiple secure locations. Never share complete backup online.
+                      </p>
+                    </div>
+                  </div>
+                  <button className="w-full py-2 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700">
+                    Download Encrypted Backup
+                  </button>
+                </div>
+              )}
+
+              <button className="w-full py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center gap-2">
+                <Upload className="w-4 h-4" />
+                Restore from Backup
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Security Recommendations */}
+        <div className="px-6 py-6 border-t border-gray-200 lg:border-0 lg:mt-6">
+          <div className="lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200 lg:p-6">
+            <p className="text-sm font-semibold text-gray-900 mb-3 lg:text-base">Security Recommendations</p>
+            <div className="space-y-2">
+              {shamirService.getRecommendations().map((rec, index) => (
+                <div key={index} className="flex items-start gap-2">
+                  <span className="text-yellow-600 text-xs">•</span>
+                  <p className="text-xs text-gray-600 lg:text-sm">{rec}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}

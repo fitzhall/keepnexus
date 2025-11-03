@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Route Test</title>
+</head>
+<body>
+    <h1>Test Routes</h1>
+    <p>Click these links to test routing:</p>
+    <ul>
+        <li><a href="http://localhost:3000/dashboard">Dashboard</a></li>
+        <li><a href="http://localhost:3000/dashboard/vault">Vault (should work)</a></li>
+        <li><a href="http://localhost:3000/dashboard/dashboard/vault">Double Dashboard (should 404)</a></li>
+    </ul>
+
+    <h2>Relative Links from Dashboard</h2>
+    <p>If you're on /dashboard, these are the correct links:</p>
+    <ul>
+        <li><a href="/dashboard/vault">Absolute: /dashboard/vault</a></li>
+        <li><a href="vault">Relative: vault (would create /dashboard/vault)</a></li>
+        <li><a href="./vault">Relative: ./vault (would create /dashboard/vault)</a></li>
+    </ul>
+</body>
+</html>
