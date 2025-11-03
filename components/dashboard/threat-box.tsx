@@ -265,7 +265,7 @@ export function ThreatBox({
                            border border-glass-light transition-colors"
                   onClick={(e) => {
                     e.stopPropagation()
-                    setShowDetails(true)
+                    _setShowDetails(true)
                   }}
                 >
                   <ArrowRight className="w-3 h-3" />
