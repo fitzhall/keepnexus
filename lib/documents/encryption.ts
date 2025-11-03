@@ -61,7 +61,7 @@ export class DocumentEncryptionService {
     return await crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
-        salt,
+        salt: salt as BufferSource,
         iterations: this.PBKDF2_ITERATIONS,
         hash: 'SHA-256'
       },
@@ -175,7 +175,7 @@ export class DocumentEncryptionService {
     return await crypto.subtle.deriveKey(
       {
         name: 'PBKDF2',
-        salt,
+        salt: salt as BufferSource,
         iterations: this.PBKDF2_ITERATIONS,
         hash: 'SHA-256'
       },
