@@ -6,15 +6,8 @@ import {
   Plus,
   X,
   Shield,
-  Clock,
-  Users,
   Activity,
-  ChevronRight,
-  Circle,
-  CheckCircle2,
   AlertCircle,
-  XCircle,
-  Zap,
   Lock,
   Trash2
 } from 'lucide-react'
@@ -157,24 +150,6 @@ export default function GovernatorPage() {
   const deleteRule = (id: string) => {
     setRules(rules.filter(r => r.id !== id))
     setDeleteConfirm(null)
-  }
-
-  const getRiskBadge = (risk: string) => {
-    switch (risk) {
-      case 'low': return { bg: 'bg-white', text: 'text-gray-900', border: 'border-gray-300' }
-      case 'medium': return { bg: 'bg-gray-100', text: 'text-gray-900', border: 'border-gray-600' }
-      case 'high': return { bg: 'bg-gray-900', text: 'text-white', border: 'border-gray-900' }
-      default: return { bg: 'bg-white', text: 'text-gray-600', border: 'border-gray-300' }
-    }
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'active': return <CheckCircle2 className="w-5 h-5 text-gray-900" />
-      case 'paused': return <Clock className="w-5 h-5 text-gray-600" />
-      case 'pending': return <Circle className="w-5 h-5 text-gray-400" />
-      default: return null
-    }
   }
 
   const applyTemplate = (template: typeof TEMPLATES[0]) => {

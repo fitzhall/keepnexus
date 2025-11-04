@@ -142,7 +142,7 @@ export function FileExport({ setup, analysis, existingAuditTrail }: FileExportPr
                   <div className="text-green-700 flex-shrink-0 mt-0.5">🔒</div>
                   <div className="text-xs text-green-800">
                     <strong>Safe to store:</strong> This file contains NO private keys or seed phrases.
-                    It's a configuration map showing WHO holds keys and WHERE they're stored.
+                    It&apos;s a configuration map showing WHO holds keys and WHERE they&apos;re stored.
                   </div>
                 </div>
               </div>

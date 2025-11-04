@@ -265,7 +265,7 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
 
           {/* Info */}
           <div className="text-xs text-gray-500 bg-gray-50 rounded p-3">
-            💡 <strong>Tip:</strong> Your multisig requires <strong>{setup.threshold}</strong> signatures out of <strong>{setup.totalKeys}</strong> total keys. Configure each key holder's name, storage type, and location for accurate risk analysis.
+            💡 <strong>Tip:</strong> Your multisig requires <strong>{setup.threshold}</strong> signatures out of <strong>{setup.totalKeys}</strong> total keys. Configure each key holder&apos;s name, storage type, and location for accurate risk analysis.
           </div>
         </div>
       )}
