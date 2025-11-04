@@ -122,7 +122,8 @@ const DEFAULT_SETUP: FamilySetupData = {
         storage: 'custodian',
         location: 'Distributed'
       }
-    ]
+    ],
+    createdAt: new Date()
   },
   heirs: [
     {
