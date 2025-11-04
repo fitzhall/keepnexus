@@ -131,13 +131,13 @@ export default function DashboardPage() {
 
         {/* Threat Score Display */}
         <div className="text-center py-8">
-          <div className="text-8xl font-light">{threatScore}</div>
+          <div className="text-8xl font-light text-gray-900">{threatScore}</div>
           <p className="text-gray-600 mt-2">Threats detected</p>
         </div>
 
         {/* I'm Alive Button */}
         <div className="px-6 mb-8">
-          <button className="w-full py-4 border border-gray-300 text-lg font-medium hover:bg-gray-50 transition-colors">
+          <button className="w-full py-4 border border-gray-300 text-gray-900 text-lg font-medium hover:bg-gray-50 transition-colors">
             I&apos;M ALIVE
           </button>
         </div>
