@@ -142,7 +142,7 @@ export default function HeirsPage() {
             </div>
             <div className="lg:bg-white lg:bg-white lg:border lg:border-gray-300 lg:p-6">
               <h3 className="hidden lg:block text-lg font-semibold text-gray-900 mb-4">Communication</h3>
-              <button className="w-full py-3 border border-gray-300  text-sm hover:bg-gray-50 lg:py-4 lg:text-base">
+              <button className="w-full py-3 border border-gray-300 text-gray-900 text-sm hover:bg-gray-50 lg:py-4 lg:text-base">
                 📚 Send Training Materials
               </button>
               <p className="hidden lg:block text-xs text-gray-500 mt-3">

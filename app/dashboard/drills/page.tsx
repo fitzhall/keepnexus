@@ -86,7 +86,7 @@ export default function DrillsPage() {
 
           {/* Settings */}
           <div className="px-6 py-6 border-t border-gray-200 lg:border-0">
-            <button className="w-full py-3 border border-gray-300  text-sm hover:bg-gray-50 lg:py-4 lg:text-base">
+            <button className="w-full py-3 border border-gray-300 text-gray-900 text-sm hover:bg-gray-50 lg:py-4 lg:text-base">
               Configure Drill Settings
             </button>
           </div>
