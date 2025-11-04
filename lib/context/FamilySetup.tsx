@@ -91,35 +91,35 @@ const DEFAULT_SETUP: FamilySetupData = {
         id: 'dad',
         holder: 'Dad (Michael)',
         type: 'full',
-        storage: 'Hardware Wallet',
+        storage: 'hardware-wallet',
         location: 'Home Safe'
       },
       {
         id: 'mom',
         holder: 'Mom (Emma)',
         type: 'full',
-        storage: 'Hardware Wallet',
+        storage: 'hardware-wallet',
         location: 'Bank Safe Deposit'
       },
       {
         id: 'son',
         holder: 'Son (Mike Jr)',
         type: 'full',
-        storage: 'Hardware Wallet',
+        storage: 'hardware-wallet',
         location: 'Personal Safe'
       },
       {
         id: 'attorney',
         holder: 'Attorney (Harris)',
         type: 'full',
-        storage: 'Paper Backup',
+        storage: 'paper',
         location: 'Law Office Vault'
       },
       {
         id: 'custodian',
         holder: 'Custodian (Unchained)',
         type: 'full',
-        storage: 'Cold Storage',
+        storage: 'custodian',
         location: 'Distributed'
       }
     ]
