@@ -159,19 +159,19 @@ export default function GovernatorPage() {
     setDeleteConfirm(null)
   }
 
-  const getRiskColor = (risk: string) => {
+  const getRiskBadge = (risk: string) => {
     switch (risk) {
-      case 'low': return 'text-green-600'
-      case 'medium': return 'text-yellow-600'
-      case 'high': return 'text-red-600'
-      default: return 'text-gray-600'
+      case 'low': return { bg: 'bg-white', text: 'text-gray-900', border: 'border-gray-300' }
+      case 'medium': return { bg: 'bg-gray-100', text: 'text-gray-900', border: 'border-gray-600' }
+      case 'high': return { bg: 'bg-gray-900', text: 'text-white', border: 'border-gray-900' }
+      default: return { bg: 'bg-white', text: 'text-gray-600', border: 'border-gray-300' }
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'active': return <CheckCircle2 className="w-5 h-5 text-green-600" />
-      case 'paused': return <Clock className="w-5 h-5 text-yellow-600" />
+      case 'active': return <CheckCircle2 className="w-5 h-5 text-gray-900" />
+      case 'paused': return <Clock className="w-5 h-5 text-gray-600" />
       case 'pending': return <Circle className="w-5 h-5 text-gray-400" />
       default: return null
     }
@@ -200,47 +200,26 @@ export default function GovernatorPage() {
                   <ArrowLeft className="w-6 h-6 text-gray-700" />
                 </Link>
                 <div>
-                  <h1 className="text-3xl font-semibold text-gray-900">The Governator</h1>
-                  <p className="text-gray-600 mt-2">Autonomous inheritance and access control</p>
+                  <h1 className="text-2xl font-semibold text-gray-900">The Governator</h1>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {rules.filter(r => r.status === 'active').length} active • {new Set(rules.map(r => r.who)).size} beneficiaries • {rules.reduce((sum, r) => sum + r.executions, 0)} executions
+                  </p>
                 </div>
               </div>
 
               <div className="hidden lg:flex items-center gap-4">
                 <Link
                   href="/dashboard"
-                  className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
                 >
                   Back
                 </Link>
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="px-5 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors flex items-center gap-2"
+                  className="px-4 py-2 bg-gray-900 text-white text-sm hover:bg-gray-800"
                 >
-                  <Plus className="w-5 h-5" />
-                  Create Rule
+                  + Create Rule
                 </button>
-              </div>
-            </div>
-
-            {/* Stats - More visual weight */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 mt-8">
-              <div>
-                <p className="text-4xl font-light text-gray-900">{rules.filter(r => r.status === 'active').length}</p>
-                <p className="text-gray-600 mt-1">Active Rules</p>
-              </div>
-              <div>
-                <p className="text-4xl font-light text-gray-900">{new Set(rules.map(r => r.who)).size}</p>
-                <p className="text-gray-600 mt-1">Beneficiaries</p>
-              </div>
-              <div>
-                <p className="text-4xl font-light text-gray-900">{rules.reduce((sum, r) => sum + r.executions, 0)}</p>
-                <p className="text-gray-600 mt-1">Executions</p>
-              </div>
-              <div>
-                <p className={`text-4xl font-light ${rules.some(r => r.risk === 'high' && r.status === 'active') ? 'text-orange-600' : 'text-green-600'}`}>
-                  {rules.some(r => r.risk === 'high' && r.status === 'active') ? 'Elevated' : 'Secure'}
-                </p>
-                <p className="text-gray-600 mt-1">Risk Status</p>
               </div>
             </div>
           </div>
@@ -252,88 +231,89 @@ export default function GovernatorPage() {
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Active Governance Rules</h2>
 
             {rules.length === 0 ? (
-              <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-                <Lock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600 text-lg mb-2">No governance rules configured</p>
-                <p className="text-gray-500">Create your first rule to automate inheritance</p>
+              <div className="bg-white border border-gray-300 p-12 text-center">
+                <Lock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600 mb-2">No governance rules configured</p>
+                <p className="text-gray-500 text-sm">Create your first rule to automate inheritance</p>
                 <button
                   onClick={() => setShowCreate(true)}
-                  className="mt-6 px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                  className="mt-6 px-4 py-2 bg-gray-900 text-white text-sm hover:bg-gray-800"
                 >
                   Get Started
                 </button>
               </div>
             ) : (
-              <div className="grid gap-4">
-                {rules.map((rule) => (
-                  <div key={rule.id} className="bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow">
-                    <div className="p-6">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          {/* Rule Header */}
-                          <div className="flex items-center gap-3 mb-4">
-                            {getStatusIcon(rule.status)}
-                            <h3 className="text-lg font-medium text-gray-900">{rule.who}</h3>
-                            <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                              rule.risk === 'low' ? 'bg-green-100 text-green-700' :
-                              rule.risk === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {rule.risk.toUpperCase()} RISK
-                            </span>
+              <div className="bg-white border border-gray-300">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-300">
+                      <th className="px-4 py-2 text-left text-xs text-gray-600">
+                        Who
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs text-gray-600 border-l border-gray-300">
+                        Can Do
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs text-gray-600 border-l border-gray-300">
+                        When
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs text-gray-600 border-l border-gray-300">
+                        If
+                      </th>
+                      <th className="px-4 py-2 text-left text-xs text-gray-600 border-l border-gray-300">
+                        Actions
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rules.map((rule) => (
+                      <tr key={rule.id} className="border-b border-gray-200 last:border-0">
+                        {/* WHO Column */}
+                        <td className="px-4 py-3 align-top text-sm">
+                          <div className="text-gray-900 mb-1">
+                            {rule.who}
                           </div>
-
-                          {/* Rule Details */}
-                          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 text-sm">
-                            <div>
-                              <p className="text-gray-500 mb-1">Permission</p>
-                              <p className="font-medium text-gray-900">{rule.canDo}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-500 mb-1">Trigger</p>
-                              <p className="font-medium text-gray-900">{rule.when}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-500 mb-1">Condition</p>
-                              <p className="font-medium text-gray-900">{rule.condition}</p>
-                            </div>
-                            <div>
-                              <p className="text-gray-500 mb-1">Activity</p>
-                              <p className="font-medium text-gray-900">
-                                {rule.executions} executions
-                                {rule.lastExecuted && (
-                                  <span className="text-gray-500 text-xs block">
-                                    Last: {rule.lastExecuted.toLocaleDateString()}
-                                  </span>
-                                )}
-                              </p>
-                            </div>
+                          <div className="text-xs text-gray-500">
+                            {rule.risk} risk • {rule.executions}x
+                            {rule.lastExecuted && ` • ${rule.lastExecuted.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                           </div>
-                        </div>
+                        </td>
 
-                        {/* Actions */}
-                        <div className="flex items-center gap-2 ml-6">
-                          <button
-                            onClick={() => toggleRule(rule.id)}
-                            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                              rule.status === 'active'
-                                ? 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-                            }`}
-                          >
-                            {rule.status === 'active' ? 'Pause' : 'Resume'}
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(rule.id)}
-                            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                        {/* CAN DO Column */}
+                        <td className="px-4 py-3 border-l border-gray-300 align-top text-sm text-gray-900">
+                          {rule.canDo}
+                        </td>
+
+                        {/* WHEN Column */}
+                        <td className="px-4 py-3 border-l border-gray-300 align-top text-sm text-gray-900">
+                          {rule.when}
+                        </td>
+
+                        {/* IF Column */}
+                        <td className="px-4 py-3 border-l border-gray-300 align-top text-sm text-gray-900">
+                          {rule.condition}
+                        </td>
+
+                        {/* ACTIONS Column */}
+                        <td className="px-4 py-3 border-l border-gray-300 align-top">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={() => toggleRule(rule.id)}
+                              className="text-xs text-gray-600 hover:text-gray-900 underline"
+                            >
+                              {rule.status === 'active' ? 'pause' : 'resume'}
+                            </button>
+                            <button
+                              onClick={() => setDeleteConfirm(rule.id)}
+                              className="text-xs text-gray-400 hover:text-gray-900"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
@@ -341,40 +321,20 @@ export default function GovernatorPage() {
           {/* Templates - More visual */}
           <div>
             <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Start Templates</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {TEMPLATES.map((template) => {
-                const Icon = template.icon
-                return (
-                  <button
-                    key={template.id}
-                    onClick={() => applyTemplate(template)}
-                    className="bg-white rounded-xl border border-gray-200 p-6 hover:shadow-md transition-all text-left group"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className={`p-3 rounded-lg ${
-                        template.risk === 'low' ? 'bg-green-50' :
-                        template.risk === 'medium' ? 'bg-yellow-50' :
-                        'bg-red-50'
-                      }`}>
-                        <Icon className={`w-6 h-6 ${getRiskColor(template.risk)}`} />
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-gray-600 transition-colors" />
-                    </div>
-                    <h3 className="font-semibold text-gray-900 mb-2">{template.title}</h3>
-                    <p className="text-sm text-gray-600 mb-4">{template.description}</p>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Who:</span>
-                        <span className="text-gray-900 font-medium">{template.who}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-gray-500">Action:</span>
-                        <span className="text-gray-900 font-medium">{template.canDo}</span>
-                      </div>
-                    </div>
-                  </button>
-                )
-              })}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+              {TEMPLATES.map((template) => (
+                <button
+                  key={template.id}
+                  onClick={() => applyTemplate(template)}
+                  className="bg-white border border-gray-300 p-4 text-left hover:border-gray-400"
+                >
+                  <h3 className="font-medium text-gray-900 mb-1">{template.title}</h3>
+                  <p className="text-sm text-gray-600 mb-3">{template.description}</p>
+                  <div className="text-xs text-gray-500">
+                    {template.who} • {template.canDo}
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -382,9 +342,9 @@ export default function GovernatorPage() {
           <div className="lg:hidden fixed bottom-6 right-6">
             <button
               onClick={() => setShowCreate(true)}
-              className="w-14 h-14 bg-gray-900 text-white rounded-full shadow-lg hover:bg-gray-800 transition-colors flex items-center justify-center"
+              className="w-12 h-12 bg-gray-900 text-white shadow-lg hover:bg-gray-800 flex items-center justify-center"
             >
-              <Plus className="w-6 h-6" />
+              <Plus className="w-5 h-5" />
             </button>
           </div>
         </div>
@@ -393,11 +353,11 @@ export default function GovernatorPage() {
       {/* Create Modal - Better design */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
-            <div className="p-6 border-b border-gray-100">
+          <div className="bg-white border border-gray-300 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-lg">
+            <div className="p-6 border-b border-gray-300">
               <div className="flex items-center justify-between">
                 <div>
-                  <h2 className="text-2xl font-semibold text-gray-900">Create Governance Rule</h2>
+                  <h2 className="text-xl font-medium text-gray-900">Create Governance Rule</h2>
                   {selectedTemplate && (
                     <p className="text-sm text-gray-600 mt-1">Based on {selectedTemplate.title} template</p>
                   )}
@@ -408,9 +368,9 @@ export default function GovernatorPage() {
                     setNewRule({ who: '', canDo: '', when: '', condition: '' })
                     setSelectedTemplate(null)
                   }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  className="text-gray-400 hover:text-gray-900"
                 >
-                  <X className="w-5 h-5 text-gray-500" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
@@ -419,8 +379,7 @@ export default function GovernatorPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* WHO */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Users className="w-4 h-4 inline mr-1" />
+                  <label className="block text-sm text-gray-700 mb-2">
                     Who can act?
                   </label>
                   <input
@@ -428,20 +387,19 @@ export default function GovernatorPage() {
                     value={newRule.who}
                     onChange={(e) => setNewRule({ ...newRule, who: e.target.value })}
                     placeholder="e.g., Emma Chen, Primary Heir"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                   />
                 </div>
 
                 {/* CAN DO */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Zap className="w-4 h-4 inline mr-1" />
+                  <label className="block text-sm text-gray-700 mb-2">
                     What can they do?
                   </label>
                   <select
                     value={newRule.canDo}
                     onChange={(e) => setNewRule({ ...newRule, canDo: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                   >
                     <option value="">Select action</option>
                     <optgroup label="View Access">
@@ -462,14 +420,13 @@ export default function GovernatorPage() {
 
                 {/* WHEN */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Clock className="w-4 h-4 inline mr-1" />
+                  <label className="block text-sm text-gray-700 mb-2">
                     When does this trigger?
                   </label>
                   <select
                     value={newRule.when}
                     onChange={(e) => setNewRule({ ...newRule, when: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                   >
                     <option value="">Select trigger</option>
                     <optgroup label="Immediate">
@@ -496,14 +453,13 @@ export default function GovernatorPage() {
 
                 {/* CONDITION */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    <Shield className="w-4 h-4 inline mr-1" />
+                  <label className="block text-sm text-gray-700 mb-2">
                     Required conditions
                   </label>
                   <select
                     value={newRule.condition}
                     onChange={(e) => setNewRule({ ...newRule, condition: e.target.value })}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gray-900 focus:border-gray-900 outline-none transition-colors"
+                    className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                   >
                     <option value="">Select condition</option>
                     <optgroup label="Automatic">
@@ -525,50 +481,36 @@ export default function GovernatorPage() {
 
               {/* Preview */}
               {newRule.who && newRule.canDo && newRule.when && newRule.condition && (
-                <div className="p-6 bg-gray-50 rounded-xl border border-gray-200">
-                  <h3 className="text-sm font-medium text-gray-600 mb-3">Rule Preview</h3>
-                  <p className="text-lg text-gray-900 leading-relaxed">
-                    <span className="font-semibold">{newRule.who}</span> can{' '}
-                    <span className="font-semibold text-blue-600">{newRule.canDo.toLowerCase()}</span> {' '}
-                    <span className="font-semibold">{newRule.when.toLowerCase()}</span>, {' '}
-                    provided <span className="font-semibold">{newRule.condition.toLowerCase()}</span>.
+                <div className="p-4 bg-gray-50 border border-gray-300">
+                  <p className="text-sm text-gray-600 mb-2">Preview:</p>
+                  <p className="text-gray-900">
+                    {newRule.who} can {newRule.canDo.toLowerCase()} {newRule.when.toLowerCase()}, provided {newRule.condition.toLowerCase()}.
                   </p>
-                  <div className="mt-4 flex items-center gap-2">
-                    <span className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                      inferRisk(newRule.canDo) === 'low' ? 'bg-green-100 text-green-700' :
-                      inferRisk(newRule.canDo) === 'medium' ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'
-                    }`}>
-                      {inferRisk(newRule.canDo).toUpperCase()} RISK
-                    </span>
-                    <span className="px-2.5 py-1 text-xs font-medium rounded-full bg-gray-100 text-gray-700">
-                      PENDING ACTIVATION
-                    </span>
+                  <div className="mt-2 text-xs text-gray-500">
+                    {inferRisk(newRule.canDo)} risk • pending activation
                   </div>
                 </div>
               )}
             </div>
 
-            <div className="p-6 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
-              <div className="flex justify-end gap-3">
-                <button
-                  onClick={() => {
-                    setShowCreate(false)
-                    setNewRule({ who: '', canDo: '', when: '', condition: '' })
-                    setSelectedTemplate(null)
-                  }}
-                  className="px-6 py-2.5 text-gray-700 hover:bg-white rounded-lg transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={createRule}
-                  disabled={!newRule.who || !newRule.canDo || !newRule.when || !newRule.condition}
-                  className="px-6 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                >
-                  Create Rule
-                </button>
-              </div>
+            <div className="p-6 border-t border-gray-300 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowCreate(false)
+                  setNewRule({ who: '', canDo: '', when: '', condition: '' })
+                  setSelectedTemplate(null)
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={createRule}
+                disabled={!newRule.who || !newRule.canDo || !newRule.when || !newRule.condition}
+                className="px-4 py-2 bg-gray-900 text-white text-sm hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Create Rule
+              </button>
             </div>
           </div>
         </div>
@@ -577,24 +519,19 @@ export default function GovernatorPage() {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="w-6 h-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900">Delete Rule?</h3>
-            </div>
-            <p className="text-gray-600 mb-6">This action cannot be undone. The governance rule will be permanently deleted.</p>
+          <div className="bg-white border border-gray-300 max-w-md w-full p-6 shadow-lg">
+            <h3 className="text-lg font-medium text-gray-900 mb-2">Delete Rule?</h3>
+            <p className="text-sm text-gray-600 mb-6">This action cannot be undone.</p>
             <div className="flex justify-end gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
               >
                 Cancel
               </button>
               <button
                 onClick={() => deleteRule(deleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="px-4 py-2 bg-gray-900 text-white text-sm hover:bg-gray-800"
               >
                 Delete Rule
               </button>
