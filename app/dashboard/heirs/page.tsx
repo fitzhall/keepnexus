@@ -1,15 +1,76 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Users, Activity } from 'lucide-react'
+import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Users, Activity, X } from 'lucide-react'
 import Link from 'next/link'
 
+interface Heir {
+  id: string
+  name: string
+  allocation: string
+  status: 'trained' | 'pending'
+  lastDrill: string
+}
+
 export default function HeirsPage() {
-  const [heirs] = useState([
-    { name: 'Wife', allocation: '60%', status: 'trained', lastDrill: 'Oct 18' },
-    { name: 'Kid16', allocation: '30%', status: 'trained', lastDrill: 'Oct 18' },
-    { name: 'D', allocation: '10%', status: 'pending', lastDrill: 'Never' }
+  const [heirs, setHeirs] = useState<Heir[]>([
+    { id: '1', name: 'Wife', allocation: '60%', status: 'trained', lastDrill: 'Oct 18' },
+    { id: '2', name: 'Kid16', allocation: '30%', status: 'trained', lastDrill: 'Oct 18' },
+    { id: '3', name: 'D', allocation: '10%', status: 'pending', lastDrill: 'Never' }
   ])
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingHeir, setEditingHeir] = useState<Heir | null>(null)
+  const [formData, setFormData] = useState({
+    name: '',
+    allocation: '',
+    status: 'pending' as 'trained' | 'pending'
+  })
+
+  const handleAddHeir = () => {
+    if (!formData.name || !formData.allocation) return
+
+    const newHeir: Heir = {
+      id: Date.now().toString(),
+      name: formData.name,
+      allocation: formData.allocation,
+      status: formData.status,
+      lastDrill: 'Never'
+    }
+
+    setHeirs([...heirs, newHeir])
+    setShowAddModal(false)
+    setFormData({ name: '', allocation: '', status: 'pending' })
+  }
+
+  const handleEditHeir = () => {
+    if (!editingHeir || !formData.name || !formData.allocation) return
+
+    setHeirs(heirs.map(heir =>
+      heir.id === editingHeir.id
+        ? { ...heir, name: formData.name, allocation: formData.allocation, status: formData.status }
+        : heir
+    ))
+    setShowEditModal(false)
+    setEditingHeir(null)
+    setFormData({ name: '', allocation: '', status: 'pending' })
+  }
+
+  const handleRemoveHeir = (id: string) => {
+    if (confirm('Are you sure you want to remove this heir?')) {
+      setHeirs(heirs.filter(heir => heir.id !== id))
+    }
+  }
+
+  const openEditModal = (heir: Heir) => {
+    setEditingHeir(heir)
+    setFormData({
+      name: heir.name,
+      allocation: heir.allocation,
+      status: heir.status
+    })
+    setShowEditModal(true)
+  }
 
   return (
     <div className="min-h-screen bg-white lg:bg-gray-50">
@@ -22,9 +83,14 @@ export default function HeirsPage() {
           <h1 className="text-lg font-semibold text-gray-900 lg:text-2xl lg:font-bold">
             <span className="hidden lg:inline">Beneficiary </span>Heirs
           </h1>
-          <UserPlus className="w-6 h-6 text-gray-700 lg:hidden" />
+          <button onClick={() => setShowAddModal(true)} className="lg:hidden">
+            <UserPlus className="w-6 h-6 text-gray-700" />
+          </button>
           <div className="hidden lg:flex gap-3">
-            <button className="px-4 py-2 bg-gray-900 text-white  hover:bg-gray-800 text-sm font-medium">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="px-4 py-2 bg-gray-900 text-white  hover:bg-gray-800 text-sm font-medium"
+            >
               + Add Heir
             </button>
             <Link href="/dashboard" className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-900 text-sm font-medium">
@@ -104,10 +170,16 @@ export default function HeirsPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button className="text-sm text-gray-900 hover:text-gray-600 lg:px-3 lg:py-1 lg:border lg:border-gray-300 lg:hover:bg-gray-100">
+                    <button
+                      onClick={() => openEditModal(heir)}
+                      className="text-sm text-gray-900 hover:text-gray-600 lg:px-3 lg:py-1 lg:border lg:border-gray-300 lg:hover:bg-gray-100"
+                    >
                       Edit
                     </button>
-                    <button className="hidden lg:block text-sm text-red-600 hover:text-red-700 px-3 py-1 border border-red-600  hover:bg-red-50">
+                    <button
+                      onClick={() => handleRemoveHeir(heir.id)}
+                      className="hidden lg:block text-sm text-red-600 hover:text-red-700 px-3 py-1 border border-red-600  hover:bg-red-50"
+                    >
                       Remove
                     </button>
                   </div>
@@ -153,12 +225,183 @@ export default function HeirsPage() {
 
           {/* Mobile Add Button */}
           <div className="px-6 pb-6 lg:hidden">
-            <button className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800">
+            <button
+              onClick={() => setShowAddModal(true)}
+              className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800"
+            >
               + Add New Heir
             </button>
           </div>
         </div>
       </div>
+
+      {/* Add Heir Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-gray-300 max-w-md w-full shadow-lg">
+            <div className="p-6 border-b border-gray-300">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-medium text-gray-900">Add New Heir</h2>
+                <button
+                  onClick={() => {
+                    setShowAddModal(false)
+                    setFormData({ name: '', allocation: '', status: 'pending' })
+                  }}
+                  className="text-gray-400 hover:text-gray-900"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Sarah Chen"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Allocation (%)
+                </label>
+                <input
+                  type="text"
+                  value={formData.allocation}
+                  onChange={(e) => setFormData({ ...formData, allocation: e.target.value })}
+                  placeholder="e.g., 25%"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Training Status
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'trained' | 'pending' })}
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                >
+                  <option value="pending">Pending Training</option>
+                  <option value="trained">Trained</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-300 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowAddModal(false)
+                  setFormData({ name: '', allocation: '', status: 'pending' })
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddHeir}
+                disabled={!formData.name || !formData.allocation}
+                className="px-4 py-2 bg-gray-900 text-white text-sm hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Add Heir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Heir Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-gray-300 max-w-md w-full shadow-lg">
+            <div className="p-6 border-b border-gray-300">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-medium text-gray-900">Edit Heir</h2>
+                <button
+                  onClick={() => {
+                    setShowEditModal(false)
+                    setEditingHeir(null)
+                    setFormData({ name: '', allocation: '', status: 'pending' })
+                  }}
+                  className="text-gray-400 hover:text-gray-900"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="e.g., Sarah Chen"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Allocation (%)
+                </label>
+                <input
+                  type="text"
+                  value={formData.allocation}
+                  onChange={(e) => setFormData({ ...formData, allocation: e.target.value })}
+                  placeholder="e.g., 25%"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Training Status
+                </label>
+                <select
+                  value={formData.status}
+                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'trained' | 'pending' })}
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                >
+                  <option value="pending">Pending Training</option>
+                  <option value="trained">Trained</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-300 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingHeir(null)
+                  setFormData({ name: '', allocation: '', status: 'pending' })
+                }}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleEditHeir}
+                disabled={!formData.name || !formData.allocation}
+                className="px-4 py-2 bg-gray-900 text-white text-sm hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              >
+                Save Changes
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

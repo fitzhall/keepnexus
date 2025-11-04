@@ -1,9 +1,20 @@
 'use client'
 
-import { ArrowLeft, Bell, PlayCircle, CheckCircle, AlertCircle } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, Bell, PlayCircle, CheckCircle, AlertCircle, X } from 'lucide-react'
 import Link from 'next/link'
 
 export default function DrillsPage() {
+  const [showSettings, setShowSettings] = useState(false)
+  const [frequency, setFrequency] = useState('monthly')
+  const [participants, setParticipants] = useState(['Wife', 'Kid16'])
+  const [notificationDays, setNotificationDays] = useState('7')
+
+  const handleSaveSettings = () => {
+    // In production, save to backend/state management
+    setShowSettings(false)
+  }
+
   return (
     <div className="min-h-screen bg-white lg:bg-gray-50">
       <div className="max-w-md mx-auto lg:max-w-6xl">
@@ -86,12 +97,125 @@ export default function DrillsPage() {
 
           {/* Settings */}
           <div className="px-6 py-6 border-t border-gray-200 lg:border-0">
-            <button className="w-full py-3 border border-gray-300 text-gray-900 text-sm hover:bg-gray-50 lg:py-4 lg:text-base">
+            <button
+              onClick={() => setShowSettings(true)}
+              className="w-full py-3 border border-gray-300 text-gray-900 text-sm hover:bg-gray-50 lg:py-4 lg:text-base"
+            >
               Configure Drill Settings
             </button>
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      {showSettings && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white border border-gray-300 max-w-lg w-full shadow-lg">
+            <div className="p-6 border-b border-gray-300">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-medium text-gray-900">Drill Configuration</h2>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="text-gray-400 hover:text-gray-900"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 space-y-6">
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Drill Frequency
+                </label>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                >
+                  <option value="weekly">Weekly</option>
+                  <option value="biweekly">Bi-weekly</option>
+                  <option value="monthly">Monthly</option>
+                  <option value="quarterly">Quarterly</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Required Participants
+                </label>
+                <div className="space-y-2">
+                  {['Wife', 'Kid16', 'D'].map((heir) => (
+                    <label key={heir} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={participants.includes(heir)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setParticipants([...participants, heir])
+                          } else {
+                            setParticipants(participants.filter(p => p !== heir))
+                          }
+                        }}
+                        className="border-2 border-gray-900"
+                      />
+                      <span className="text-sm text-gray-900">{heir}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Notification Days Before
+                </label>
+                <input
+                  type="number"
+                  value={notificationDays}
+                  onChange={(e) => setNotificationDays(e.target.value)}
+                  min="1"
+                  max="30"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Send reminders {notificationDays} days before each drill
+                </p>
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Auto-Skip During
+                </label>
+                <div className="space-y-2">
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="border-2 border-gray-900" />
+                    <span className="text-sm text-gray-900">Holidays</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input type="checkbox" className="border-2 border-gray-900" />
+                    <span className="text-sm text-gray-900">Vacation periods</span>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-300 flex justify-end gap-3">
+              <button
+                onClick={() => setShowSettings(false)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveSettings}
+                className="px-4 py-2 bg-gray-900 text-white text-sm hover:bg-gray-800"
+              >
+                Save Settings
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
