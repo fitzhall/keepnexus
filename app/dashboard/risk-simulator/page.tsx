@@ -17,7 +17,7 @@ import { SetupConfigPanel } from '@/components/risk-simulator/SetupConfigPanel'
 import { FileExport } from '@/components/risk-simulator/FileExport'
 import { FileImport } from '@/components/risk-simulator/FileImport'
 import { PDFPacketExport } from '@/components/risk-simulator/PDFPacketExport'
-import { MultisigSetup, Scenario, SimulationResult, ShardConfig } from '@/lib/risk-simulator/types'
+import { MultisigSetup, Scenario, SimulationResult, ShardConfig, KeyType } from '@/lib/risk-simulator/types'
 import { analyzeRisk, simulateScenario } from '@/lib/risk-simulator/engine'
 import { PRESET_SCENARIOS } from '@/lib/risk-simulator/scenarios'
 import { KeepNexusFile } from '@/lib/risk-simulator/file-export'
@@ -100,7 +100,7 @@ export default function RiskSimulatorPage() {
       ...setup,
       keys: setup.keys.map(key =>
         key.id === keyId
-          ? { ...key, type: enabled ? 'sharded' : 'full' }
+          ? { ...key, type: (enabled ? 'sharded' : 'full') as KeyType }
           : key
       )
     }
