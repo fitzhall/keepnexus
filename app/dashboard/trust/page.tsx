@@ -309,7 +309,7 @@ export default function TrustPage() {
           <h1 className="text-lg font-semibold text-gray-900 lg:text-2xl lg:font-bold">Trust Documents</h1>
           <FileText className="w-6 h-6 text-gray-700 lg:hidden" />
           <div className="hidden lg:block">
-            <Link href="/dashboard" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+            <Link href="/dashboard" className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-900 text-sm font-medium">
               ← Back to Dashboard
             </Link>
           </div>
@@ -317,9 +317,9 @@ export default function TrustPage() {
 
         <div className="lg:px-6">
           {/* Zero-Knowledge Security Banner */}
-          <div className="mx-4 mb-4 p-4 bg-gradient-to-r from-green-50 to-blue-50 border border-green-200 rounded-lg lg:mx-0 lg:mb-6">
+          <div className="mx-4 mb-4 p-4 bg-gray-50 border border-gray-300  lg:mx-0 lg:mb-6">
             <div className="flex items-start gap-3">
-              <ShieldCheck className="w-5 h-5 text-green-600 mt-0.5" />
+              <ShieldCheck className="w-5 h-5 text-gray-900 mt-0.5" />
               <div className="flex-1">
                 <p className="font-medium text-gray-900">🔒 Zero-Knowledge Encryption</p>
                 <p className="text-sm text-gray-600 mt-1">
@@ -331,8 +331,8 @@ export default function TrustPage() {
 
           {/* Upload Area */}
           <div
-            className={`mx-4 mb-4 border-2 border-dashed rounded-lg transition-all lg:mx-0 lg:mb-6 ${
-              isDragging ? 'border-blue-500 bg-blue-50' : 'border-gray-300 bg-gray-50'
+            className={`mx-4 mb-4 border-2 border-dashed  transition-all lg:mx-0 lg:mb-6 ${
+              isDragging ? 'border-gray-900 bg-gray-100' : 'border-gray-900 bg-gray-50'
             } ${isEncrypting ? 'opacity-50 pointer-events-none' : ''}`}
             onDragEnter={handleDragEnter}
             onDragLeave={handleDragLeave}
@@ -342,20 +342,20 @@ export default function TrustPage() {
             <div className="p-8 text-center">
               {isEncrypting ? (
                 <div className="space-y-3">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
+                  <div className="animate-spin  h-12 w-12 border-b-2 border-gray-900 mx-auto"></div>
                   <p className="text-gray-900 font-medium">{uploadProgress}</p>
                   <p className="text-sm text-gray-600">Please wait while we secure your document...</p>
                 </div>
               ) : (
                 <>
-                  <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-blue-500' : 'text-gray-400'}`} />
+                  <Upload className={`w-12 h-12 mx-auto mb-4 ${isDragging ? 'text-gray-900' : 'text-gray-400'}`} />
                   <p className="text-gray-700 font-medium mb-2">
                     {isDragging ? 'Drop your document here' : 'Drag and drop your document'}
                   </p>
                   <p className="text-sm text-gray-500 mb-4">or</p>
                   <button
                     onClick={() => fileInputRef.current?.click()}
-                    className="px-4 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+                    className="px-4 py-2 bg-gray-900 text-white  hover:bg-gray-800 transition-colors"
                   >
                     Browse Files
                   </button>
@@ -376,32 +376,32 @@ export default function TrustPage() {
 
           {/* Success Message */}
           {success && (
-            <div className="mx-4 mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-3 lg:mx-0">
-              <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
+            <div className="mx-4 mb-4 p-4 bg-gray-50 border border-gray-300  flex items-start gap-3 lg:mx-0">
+              <CheckCircle className="w-5 h-5 text-gray-900 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm text-green-800">{success}</p>
+                <p className="text-sm text-gray-900">{success}</p>
               </div>
               <button onClick={() => setSuccess(null)}>
-                <X className="w-4 h-4 text-green-600" />
+                <X className="w-4 h-4 text-gray-900" />
               </button>
             </div>
           )}
 
           {/* Error Message */}
           {error && (
-            <div className="mx-4 mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3 lg:mx-0">
-              <AlertTriangle className="w-5 h-5 text-red-600 mt-0.5" />
+            <div className="mx-4 mb-4 p-4 bg-gray-100 border border-gray-300  flex items-start gap-3 lg:mx-0">
+              <AlertTriangle className="w-5 h-5 text-gray-900 mt-0.5" />
               <div className="flex-1">
-                <p className="text-sm text-red-800">{error}</p>
+                <p className="text-sm text-gray-900">{error}</p>
               </div>
               <button onClick={() => setError(null)}>
-                <X className="w-4 h-4 text-red-600" />
+                <X className="w-4 h-4 text-gray-900" />
               </button>
             </div>
           )}
 
           {/* Documents List */}
-          <div className="px-4 py-4 lg:px-0 lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200">
+          <div className="px-4 py-4 lg:px-0 lg:bg-white lg:border lg:border-gray-300">
             <div className="flex items-center justify-between mb-4 lg:px-6 lg:pt-2">
               <h2 className="text-lg font-semibold text-gray-900">Your Documents</h2>
               <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -412,7 +412,7 @@ export default function TrustPage() {
 
             {isLoading ? (
               <div className="py-12 text-center">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+                <div className="animate-spin  h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
                 <p className="text-sm text-gray-600 mt-4">Loading documents...</p>
               </div>
             ) : documents.length === 0 ? (
@@ -424,7 +424,7 @@ export default function TrustPage() {
             ) : (
               <div className="space-y-3 lg:px-6 lg:pb-6">
                 {documents.map((doc) => (
-                  <div key={doc.metadata.id} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div key={doc.metadata.id} className="border border-gray-300  p-4 hover:bg-gray-50 transition-colors">
                     <div className="flex items-start justify-between">
                       <div className="flex items-start gap-3 flex-1">
                         <span className="text-2xl mt-1">{getDocumentIcon(doc.metadata.type)}</span>
@@ -447,21 +447,21 @@ export default function TrustPage() {
                           <div className="flex items-center gap-2 mt-3">
                             <button
                               onClick={() => handleView(doc)}
-                              className="flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200 transition-colors"
+                              className="flex items-center gap-1 px-3 py-1 bg-gray-900 text-white  text-xs hover:bg-gray-800 transition-colors"
                             >
                               <Eye className="w-3 h-3" />
                               View
                             </button>
                             <button
                               onClick={() => handleDownload(doc)}
-                              className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700 rounded text-xs hover:bg-gray-200 transition-colors"
+                              className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-700  text-xs hover:bg-gray-200 transition-colors"
                             >
                               <Download className="w-3 h-3" />
                               Download
                             </button>
                             <button
                               onClick={() => setDeleteConfirm(doc.metadata.id)}
-                              className="flex items-center gap-1 px-3 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200 transition-colors"
+                              className="flex items-center gap-1 px-3 py-1 bg-gray-100 text-gray-900  text-xs hover:bg-gray-200 transition-colors"
                             >
                               <Trash2 className="w-3 h-3" />
                               Delete
@@ -478,16 +478,16 @@ export default function TrustPage() {
 
           {/* Storage Stats */}
           {documents.length > 0 && (
-            <div className="mx-4 mt-4 p-4 bg-gray-50 rounded-lg lg:mx-0 lg:mt-6">
+            <div className="mx-4 mt-4 p-4 bg-gray-50  lg:mx-0 lg:mt-6 border border-gray-300">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-600">Storage used:</span>
                 <span className="font-medium text-gray-900">
                   {formatFileSize(documents.reduce((sum, doc) => sum + doc.metadata.size, 0))} / 100 MB
                 </span>
               </div>
-              <div className="mt-2 bg-gray-200 rounded-full h-2">
+              <div className="mt-2 bg-gray-200  h-2">
                 <div
-                  className="bg-green-500 h-2 rounded-full transition-all"
+                  className="bg-gray-900 h-2  transition-all"
                   style={{
                     width: `${Math.min(100, (documents.reduce((sum, doc) => sum + doc.metadata.size, 0) / (100 * 1024 * 1024)) * 100)}%`
                   }}
@@ -498,7 +498,7 @@ export default function TrustPage() {
 
           {/* Actions */}
           <div className="px-6 py-6 border-t border-gray-200 lg:border-0 lg:px-0">
-            <button className="w-full py-3 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800 lg:py-4 lg:text-base transition-colors">
+            <button className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800 lg:py-4 lg:text-base transition-colors">
               Schedule Annual Review
             </button>
           </div>
@@ -508,7 +508,7 @@ export default function TrustPage() {
       {/* Password Dialog */}
       {showPasswordDialog && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white  max-w-md w-full p-6 border border-gray-300">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Secure Your Document</h3>
             <p className="text-sm text-gray-600 mb-4">
               Enter a password to encrypt &quot;{pendingFile?.name}&quot;. You&apos;ll need this password and your wallet to decrypt it later.
@@ -518,7 +518,7 @@ export default function TrustPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter encryption password"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300  mb-4 focus:outline-none focus:ring-2 focus:ring-gray-900 bg-white text-gray-900"
               autoFocus
             />
             <div className="flex gap-3">
@@ -528,14 +528,14 @@ export default function TrustPage() {
                   setPendingFile(null)
                   setPassword('')
                 }}
-                className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2 border border-gray-300 text-gray-700  hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleEncryptAndUpload}
                 disabled={!password}
-                className="flex-1 py-2 bg-gray-900 text-white rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex-1 py-2 bg-gray-900 text-white  hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 Encrypt & Upload
               </button>
@@ -550,7 +550,7 @@ export default function TrustPage() {
       {/* Delete Confirmation */}
       {deleteConfirm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-md w-full p-6">
+          <div className="bg-white  max-w-md w-full p-6 border border-gray-300">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Delete Document?</h3>
             <p className="text-sm text-gray-600 mb-4">
               This action cannot be undone. The encrypted document will be permanently deleted.
@@ -558,13 +558,13 @@ export default function TrustPage() {
             <div className="flex gap-3">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="flex-1 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex-1 py-2 border border-gray-300 text-gray-700  hover:bg-gray-50 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleDelete(deleteConfirm)}
-                className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                className="flex-1 py-2 bg-gray-900 text-white  hover:bg-gray-800 transition-colors"
               >
                 Delete
               </button>
@@ -578,12 +578,12 @@ export default function TrustPage() {
         <div className="fixed inset-0 bg-black bg-opacity-90 flex flex-col z-50">
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Lock className="w-5 h-5 text-green-600" />
+              <Lock className="w-5 h-5 text-gray-900" />
               <span className="text-sm text-gray-600">Secure Document Viewer</span>
             </div>
             <button
               onClick={closeViewer}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100  transition-colors"
             >
               <X className="w-5 h-5 text-gray-700" />
             </button>

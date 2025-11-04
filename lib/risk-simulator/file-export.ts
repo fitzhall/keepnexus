@@ -8,6 +8,7 @@
 
 import { MultisigSetup, SimulationResult } from './types'
 import { DocumentEncryptionService } from '../documents/encryption'
+import { GovernanceRule, Heir, TrustInfo } from '../context/FamilySetup'
 
 export interface KeepNexusFile {
   version: string                    // File format version (e.g., "1.0.0")
@@ -20,10 +21,12 @@ export interface KeepNexusFile {
     resilienceScore: number
     timestamp: Date
   }
-  governance?: {                     // Future: Governator rules
-    rules: any[]
-    constitution?: string
+  governance?: {                     // Governator rules - THE VALUE PROPOSITION
+    rules: GovernanceRule[]
+    constitution?: string            // Optional governance philosophy/notes
   }
+  heirs?: Heir[]                     // Beneficiaries and allocations
+  trust?: TrustInfo                  // Trust/legal entity information
   auditTrail: AuditEntry[]          // Who did what when
 }
 
@@ -51,7 +54,7 @@ export interface KeepNexusMetadata {
 
 export class KeepNexusFileService {
   private encryptionService: DocumentEncryptionService
-  private readonly FILE_VERSION = '1.0.0'
+  private readonly FILE_VERSION = '1.1.0' // Bumped for governance support
 
   constructor() {
     this.encryptionService = new DocumentEncryptionService()
@@ -59,10 +62,14 @@ export class KeepNexusFileService {
 
   /**
    * Create a new KeepNexus file from current configuration
+   * NOW INCLUDES: Governance rules, heirs, trust info - the complete family plan
    */
   createFile(
     setup: MultisigSetup,
     analysis?: { results: SimulationResult[]; resilienceScore: number },
+    governanceRules?: GovernanceRule[],
+    heirs?: Heir[],
+    trust?: TrustInfo,
     existingAuditTrail?: AuditEntry[]
   ): KeepNexusFile {
     const now = new Date()
@@ -74,6 +81,9 @@ export class KeepNexusFileService {
       family: setup.family,
       setup,
       analysis: analysis ? { ...analysis, timestamp: now } : undefined,
+      governance: governanceRules ? { rules: governanceRules } : undefined,
+      heirs,
+      trust,
       auditTrail: existingAuditTrail || []
     }
 

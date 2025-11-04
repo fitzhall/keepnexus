@@ -6,12 +6,14 @@
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import { MultisigSetup, SimulationResult, Scenario } from './types'
+import { GovernanceRule } from '../context/FamilySetup'
 
 interface PDFGenerationOptions {
   setup: MultisigSetup
   results: SimulationResult[]
   scenarios: Scenario[]
   resilienceScore: number
+  governanceRules?: GovernanceRule[]  // CRITICAL: The value proposition
 }
 
 export class PDFPlaybookGenerator {

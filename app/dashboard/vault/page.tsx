@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react'
 import {
   ArrowLeft, Wallet, Shield, Key, RefreshCw,
-  Download, Upload, Share2, AlertTriangle, CheckCircle, XCircle
+  Download, Upload, Share2, AlertTriangle, CheckCircle, XCircle, Activity
 } from 'lucide-react'
 import Link from 'next/link'
 import { shamirService, ShamirConfig } from '@/lib/bitcoin/shamir'
+import { walletService, WalletStatus } from '@/lib/bitcoin/wallet'
 
 export default function VaultPage() {
-  const [walletConnected] = useState(true)
+  const [wallet, setWallet] = useState<WalletStatus>({ connected: false })
   const [shamir, setShamir] = useState<ShamirConfig | null>(null)
   const [showShamir, setShowShamir] = useState(false)
   const [showBackup, setShowBackup] = useState(false)
@@ -24,8 +25,11 @@ export default function VaultPage() {
   const [schedulingRotation, setSchedulingRotation] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-  const balance = '0.21'
-  const address = 'bc1q...fjhx0wlh'
+  // Load wallet status on mount
+  useEffect(() => {
+    const status = walletService.getStatus()
+    setWallet(status)
+  }, [])
 
   useEffect(() => {
     // Load existing Shamir config if available
@@ -153,50 +157,69 @@ export default function VaultPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white lg:bg-gray-50">
-      <div className="max-w-md mx-auto lg:max-w-6xl">
+    <div className="min-h-screen bg-white">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200 lg:px-6 lg:py-6 lg:mb-6 lg:border-0">
-          <Link href="/dashboard" className="lg:hidden">
-            <ArrowLeft className="w-6 h-6 text-gray-700" />
+        <div className="flex items-center justify-between px-6 py-6 border-b border-gray-300">
+          <Link href="/dashboard">
+            <ArrowLeft className="w-6 h-6 text-gray-900" />
           </Link>
-          <h1 className="text-lg font-semibold text-gray-900 lg:text-2xl lg:font-bold">
-            <span className="hidden lg:inline">Bitcoin </span>Vault
+          <h1 className="text-xl font-mono uppercase tracking-wider text-gray-900">
+            VAULT
           </h1>
-          <div className="w-6 lg:w-auto">
-            <Link href="/dashboard" className="hidden lg:inline-flex px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
-              ← Back to Dashboard
+          <div>
+            <Link href="/dashboard" className="px-4 py-2 border border-gray-300 text-gray-900 hover:border-gray-900 transition-colors text-sm font-mono uppercase">
+              BACK
             </Link>
           </div>
         </div>
 
-        <div className="lg:grid lg:grid-cols-2 lg:gap-6 lg:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
           {/* Left Column */}
-          <div className="space-y-0 lg:space-y-6">
+          <div className="space-y-6">
             {/* Wallet Status */}
-            <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <Wallet className="w-5 h-5 text-gray-600" />
-                  <div>
-                    <p className="text-sm font-medium text-gray-900">Wallet Connected</p>
-                    <p className="text-xs text-gray-500">{address}</p>
+            <div className="border border-gray-300 bg-white p-6">
+              {wallet.connected ? (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <Wallet className="w-5 h-5 text-gray-900" />
+                      <div>
+                        <p className="text-sm font-mono uppercase tracking-wider text-gray-900">Wallet Connected</p>
+                        <p className="text-xs font-mono text-gray-600">{wallet.address}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-mono font-bold">{wallet.balance ? walletService.formatBTC(wallet.balance) : '0'} BTC</p>
+                      <p className="text-xs font-mono text-gray-600">~${wallet.balance ? (wallet.balance * 100000).toLocaleString() : '0'}</p>
+                    </div>
                   </div>
+                  <button
+                    onClick={async () => {
+                      await walletService.disconnect()
+                      setWallet({ connected: false })
+                    }}
+                    className="w-full py-2 border border-gray-300 text-sm font-mono uppercase text-gray-900 hover:border-gray-900 transition-colors"
+                  >
+                    DISCONNECT
+                  </button>
+                </>
+              ) : (
+                <div className="text-center py-8">
+                  <Wallet className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+                  <p className="text-sm text-gray-600 mb-4">No wallet connected</p>
+                  <Link
+                    href="/dashboard"
+                    className="inline-block px-4 py-2 bg-gray-900 text-white text-sm font-mono uppercase hover:bg-gray-800 transition-colors"
+                  >
+                    CONNECT ON DASHBOARD
+                  </Link>
                 </div>
-                <div className="text-right">
-                  <p className="text-lg font-semibold">{balance} BTC</p>
-                  <p className="text-xs text-gray-500">~$21,000</p>
-                </div>
-              </div>
-              {walletConnected && (
-                <button className="w-full py-2 text-sm text-gray-600 hover:text-gray-800">
-                  Disconnect
-                </button>
               )}
             </div>
 
             {/* Multisig Status */}
-            <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="px-6 py-6 border-b border-gray-100 lg:border lg:bg-white lg:border-gray-300">
               <div className="flex items-center gap-3 mb-4">
                 <Shield className="w-5 h-5 text-green-600" />
                 <div className="flex-1">
@@ -204,7 +227,7 @@ export default function VaultPage() {
                   <p className="text-xs text-gray-500 lg:text-sm">Last rotation: Oct 18</p>
                 </div>
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 mb-4">
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">You</span>
                   <span className="text-green-600">✓ Active</span>
@@ -218,10 +241,18 @@ export default function VaultPage() {
                   <span className="text-green-600">✓ Active</span>
                 </div>
               </div>
+              {/* Natural flow: Setup multisig → Test recovery scenarios */}
+              <Link
+                href="/dashboard/risk-simulator"
+                className="flex items-center justify-center gap-2 w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800 transition-colors"
+              >
+                <Activity className="w-4 h-4" />
+                Analyze Recovery Risk
+              </Link>
             </div>
 
             {/* Rotation Schedule */}
-            <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="px-6 py-6 border-b border-gray-100 lg:border lg:bg-white lg:border-gray-300">
               <div className="flex items-center gap-3 mb-4">
                 <RefreshCw className="w-5 h-5 text-gray-600" />
                 <div className="flex-1">
@@ -232,7 +263,7 @@ export default function VaultPage() {
               <button
                 onClick={handleScheduleRotation}
                 disabled={schedulingRotation}
-                className="w-full py-3 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800 disabled:opacity-50"
+                className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800 disabled:opacity-50"
               >
                 {schedulingRotation ? 'Scheduling...' : 'Schedule Rotation'}
               </button>
@@ -242,7 +273,7 @@ export default function VaultPage() {
           {/* Right Column */}
           <div className="space-y-0 lg:space-y-6">
             {/* Shamir Shares */}
-            <div className="px-6 py-6 border-b border-gray-100 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="px-6 py-6 border-b border-gray-100 lg:border lg:bg-white lg:border-gray-300">
               <div className="flex items-center gap-3 mb-4">
                 <Share2 className="w-5 h-5 text-gray-600" />
                 <div className="flex-1">
@@ -258,7 +289,7 @@ export default function VaultPage() {
                   <button
                     onClick={() => setShowConfirmDialog(true)}
                     disabled={creatingShares}
-                    className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50 transition-colors duration-200"
+                    className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800 disabled:opacity-50 transition-colors duration-200"
                   >
                     {creatingShares ? 'Creating Shares...' : 'Create Shamir Shares'}
                   </button>
@@ -266,7 +297,7 @@ export default function VaultPage() {
                   {/* Confirmation Dialog */}
                   {showConfirmDialog && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
-                      <div className="bg-white rounded-lg max-w-md w-full p-6">
+                      <div className="bg-white border border-gray-300 max-w-md w-full p-6">
                         <div className="flex items-start gap-3 mb-4">
                           <AlertTriangle className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-1" />
                           <div>
@@ -282,14 +313,14 @@ export default function VaultPage() {
                         <div className="flex gap-3">
                           <button
                             onClick={() => setShowConfirmDialog(false)}
-                            className="flex-1 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                            className="flex-1 py-2 border-2 border-gray-900 text-gray-900 text-sm hover:bg-gray-50"
                           >
                             Cancel
                           </button>
                           <button
                             onClick={handleCreateShares}
                             disabled={creatingShares}
-                            className="flex-1 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700 disabled:opacity-50"
+                            className="flex-1 py-2 bg-gray-900 text-white  text-sm hover:bg-gray-800 disabled:opacity-50"
                           >
                             {creatingShares ? 'Creating...' : 'Create Shares'}
                           </button>
@@ -303,13 +334,13 @@ export default function VaultPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => setShowShamir(!showShamir)}
-                      className="flex-1 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                      className="flex-1 py-3 border-2 border-gray-900 text-gray-900 text-sm hover:bg-gray-50"
                     >
                       {showShamir ? 'Hide' : 'View'} Shares
                     </button>
                     <button
                       onClick={() => setShowRecovery(!showRecovery)}
-                      className="flex-1 py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                      className="flex-1 py-3 border-2 border-gray-900 text-gray-900 text-sm hover:bg-gray-50"
                     >
                       Recover Keys
                     </button>
@@ -317,7 +348,7 @@ export default function VaultPage() {
 
                   {/* Error Display */}
                   {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="p-3 bg-red-50 border border-red-200  animate-in slide-in-from-top-2 fade-in duration-300">
                       <div className="flex items-start gap-2">
                         <XCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
                         <div className="flex-1">
@@ -335,7 +366,7 @@ export default function VaultPage() {
 
                   {/* Success Display */}
                   {successMessage && (
-                    <div className="p-3 bg-green-50 border border-green-200 rounded-lg animate-in slide-in-from-top-2 fade-in duration-300">
+                    <div className="p-3 bg-green-50 border border-green-200  animate-in slide-in-from-top-2 fade-in duration-300">
                       <div className="flex items-start gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5 animate-pulse" />
                         <div className="flex-1">
@@ -375,7 +406,7 @@ export default function VaultPage() {
                             type="checkbox"
                             checked={selectedShares.includes(share.id)}
                             onChange={() => toggleShareSelection(share.id)}
-                            className="rounded border-gray-300"
+                            className="border-2 border-gray-900"
                           />
                           <span className="text-xs text-gray-600">
                             Share #{share.id} ({share.holder})
@@ -388,7 +419,7 @@ export default function VaultPage() {
                       <button
                         onClick={handleRecover}
                         disabled={recovering || selectedShares.length < shamir.threshold}
-                        className="w-full py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 disabled:opacity-50"
+                        className="w-full py-2 bg-gray-900 text-white  text-sm hover:bg-gray-800 disabled:opacity-50"
                       >
                         {recovering ? 'Recovering...' : 'Recover Keys'}
                       </button>
@@ -399,7 +430,7 @@ export default function VaultPage() {
             </div>
 
             {/* Backup & Recovery */}
-            <div className="px-6 py-6 lg:border lg:rounded-lg lg:bg-white lg:shadow-sm">
+            <div className="px-6 py-6 lg:border lg:bg-white lg:border-gray-300">
               <div className="flex items-center gap-3 mb-4">
                 <Key className="w-5 h-5 text-gray-600" />
                 <p className="text-sm font-medium text-gray-900">Backup & Recovery</p>
@@ -407,19 +438,19 @@ export default function VaultPage() {
               <div className="space-y-3">
                 <button
                   onClick={() => setShowBackup(!showBackup)}
-                  className="w-full py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center gap-2"
+                  className="w-full py-3 border-2 border-gray-900 text-gray-900 text-sm hover:bg-gray-50 flex items-center justify-center gap-2"
                 >
                   <Download className="w-4 h-4" />
                   Export Backup
                 </button>
 
                 {showBackup && (
-                  <div className="space-y-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <div className="space-y-2 p-3 bg-gray-50 border border-gray-300 ">
                     <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <AlertTriangle className="w-4 h-4 text-gray-900 flex-shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-medium text-yellow-800">Security Warning</p>
-                        <p className="text-xs text-yellow-700 mt-1">
+                        <p className="text-xs font-medium text-gray-900">Security Warning</p>
+                        <p className="text-xs text-gray-800 mt-1">
                           Store backup in multiple secure locations. Never share complete backup online.
                         </p>
                       </div>
@@ -427,7 +458,7 @@ export default function VaultPage() {
                     <button
                       onClick={handleExportBackup}
                       disabled={exportingBackup}
-                      className="w-full py-2 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700 disabled:opacity-50"
+                      className="w-full py-2 bg-gray-900 text-white rounded text-xs hover:bg-gray-800 disabled:opacity-50"
                     >
                       {exportingBackup ? 'Exporting...' : 'Download Encrypted Backup'}
                     </button>
@@ -437,7 +468,7 @@ export default function VaultPage() {
                 <button
                   onClick={handleRestoreBackup}
                   disabled={restoringBackup}
-                  className="w-full py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-50"
+                  className="w-full py-3 border-2 border-gray-900 text-gray-900 text-sm hover:bg-gray-50 flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   <Upload className="w-4 h-4" />
                   {restoringBackup ? 'Restoring...' : 'Restore from Backup'}
@@ -449,7 +480,7 @@ export default function VaultPage() {
 
         {/* Security Recommendations */}
         <div className="px-6 py-6 border-t border-gray-200 lg:border-0 lg:mt-6">
-          <div className="lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200 lg:p-6">
+          <div className="lg:bg-white lg:border lg:border-gray-300 lg:p-6">
             <p className="text-sm font-semibold text-gray-900 mb-3 lg:text-base">Security Recommendations</p>
             <div className="space-y-2">
               {shamirService.getRecommendations().map((rec, index) => (

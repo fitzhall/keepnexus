@@ -8,6 +8,7 @@
 import { useState } from 'react'
 import { MultisigSetup, SimulationResult, Scenario } from '@/lib/risk-simulator/types'
 import { PDFPlaybookGenerator } from '@/lib/risk-simulator/pdf-generator'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 interface PDFPacketExportProps {
   setup: MultisigSetup
@@ -25,6 +26,8 @@ interface PDFOption {
 }
 
 export function PDFPacketExport({ setup, results, scenarios, resilienceScore }: PDFPacketExportProps) {
+  // Get governance rules from context - THE VALUE PROPOSITION
+  const { setup: contextSetup } = useFamilySetup()
   const [isOpen, setIsOpen] = useState(false)
   const [selectedPDFs, setSelectedPDFs] = useState<Set<PDFType>>(new Set(['attorney', 'cpa', 'technical']))
   const [isGenerating, setIsGenerating] = useState(false)
@@ -67,7 +70,14 @@ export function PDFPacketExport({ setup, results, scenarios, resilienceScore }: 
 
   const generatePDF = async (type: PDFType): Promise<Blob> => {
     const generator = new PDFPlaybookGenerator()
-    const options = { setup, results, scenarios, resilienceScore }
+    // Include governance rules - the complete family plan
+    const options = {
+      setup,
+      results,
+      scenarios,
+      resilienceScore,
+      governanceRules: contextSetup.governanceRules
+    }
 
     switch (type) {
       case 'attorney':

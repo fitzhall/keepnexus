@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Users } from 'lucide-react'
+import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Users, Activity } from 'lucide-react'
 import Link from 'next/link'
 
 export default function HeirsPage() {
@@ -24,10 +24,10 @@ export default function HeirsPage() {
           </h1>
           <UserPlus className="w-6 h-6 text-gray-700 lg:hidden" />
           <div className="hidden lg:flex gap-3">
-            <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm font-medium">
+            <button className="px-4 py-2 bg-gray-900 text-white  hover:bg-gray-800 text-sm font-medium">
               + Add Heir
             </button>
-            <Link href="/dashboard" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+            <Link href="/dashboard" className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-900 text-sm font-medium">
               ← Back to Dashboard
             </Link>
           </div>
@@ -35,7 +35,7 @@ export default function HeirsPage() {
 
         <div className="lg:px-6">
           {/* Summary */}
-          <div className="px-6 py-6 border-b border-gray-100 lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200 lg:mb-6">
+          <div className="px-6 py-6 border-b border-gray-100 lg:bg-white lg:bg-white lg:border lg:border-gray-300 lg:mb-6">
             <div className="flex items-center justify-between lg:justify-start lg:gap-12">
               <div>
                 <p className="text-sm text-gray-700 lg:text-base">Total Heirs</p>
@@ -49,9 +49,9 @@ export default function HeirsPage() {
               </div>
               <div className="hidden lg:block flex-1">
                 <div className="flex items-center gap-2">
-                  <div className="flex-1 bg-gray-200 rounded-full h-2">
+                  <div className="flex-1 bg-gray-200  h-2">
                     <div
-                      className="bg-green-600 h-2 rounded-full transition-all"
+                      className="bg-green-600 h-2  transition-all"
                       style={{ width: `${(heirs.filter(h => h.status === 'trained').length / heirs.length) * 100}%` }}
                     />
                   </div>
@@ -65,7 +65,7 @@ export default function HeirsPage() {
           </div>
 
           {/* Heirs List */}
-          <div className="flex-1 lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200 lg:mb-6">
+          <div className="flex-1 lg:bg-white lg:bg-white lg:border lg:border-gray-300 lg:mb-6">
             <div className="hidden lg:block px-6 py-4 border-b border-gray-100">
               <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
                 <Users className="w-5 h-5 text-gray-600" />
@@ -93,21 +93,21 @@ export default function HeirsPage() {
                         Last drill: {heir.lastDrill}
                       </p>
                       {heir.status === 'trained' ? (
-                        <span className="hidden lg:inline-flex px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full">
+                        <span className="hidden lg:inline-flex px-2 py-1 bg-green-100 text-green-700 text-xs ">
                           ✓ Fully Trained
                         </span>
                       ) : (
-                        <span className="hidden lg:inline-flex px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">
+                        <span className="hidden lg:inline-flex px-2 py-1 bg-yellow-100 text-yellow-700 text-xs ">
                           ⚠ Training Pending
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button className="text-sm text-blue-600 hover:text-blue-700 lg:px-3 lg:py-1 lg:border lg:border-blue-600 lg:rounded lg:hover:bg-blue-50">
+                    <button className="text-sm text-gray-900 hover:text-gray-600 lg:px-3 lg:py-1 lg:border lg:border-gray-300 lg:hover:bg-gray-100">
                       Edit
                     </button>
-                    <button className="hidden lg:block text-sm text-red-600 hover:text-red-700 px-3 py-1 border border-red-600 rounded hover:bg-red-50">
+                    <button className="hidden lg:block text-sm text-red-600 hover:text-red-700 px-3 py-1 border border-red-600  hover:bg-red-50">
                       Remove
                     </button>
                   </div>
@@ -117,19 +117,32 @@ export default function HeirsPage() {
           </div>
 
           {/* Actions */}
-          <div className="px-6 py-6 space-y-3 border-t border-gray-200 lg:border-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-            <div className="lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200 lg:p-6">
+          <div className="px-6 py-6 space-y-3 border-t border-gray-200 lg:border-0 lg:grid lg:grid-cols-3 lg:gap-4 lg:space-y-0">
+            <div className="lg:bg-white lg:bg-white lg:border lg:border-gray-300 lg:p-6">
               <h3 className="hidden lg:block text-lg font-semibold text-gray-900 mb-4">Training & Drills</h3>
-              <button className="w-full py-3 bg-gray-900 text-white rounded-lg text-sm hover:bg-gray-800 lg:py-4 lg:text-base">
+              <button className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800 lg:py-4 lg:text-base">
                 🎮 Run Inheritance Drill
               </button>
               <p className="hidden lg:block text-xs text-gray-500 mt-3">
                 Test heirs&apos; ability to access funds in a simulated scenario
               </p>
             </div>
-            <div className="lg:bg-white lg:rounded-lg lg:shadow-sm lg:border lg:border-gray-200 lg:p-6">
+            <div className="lg:bg-white lg:bg-white lg:border lg:border-gray-300 lg:p-6">
+              <h3 className="hidden lg:block text-lg font-semibold text-gray-900 mb-4">Risk Analysis</h3>
+              <Link
+                href="/dashboard/risk-simulator"
+                className="flex items-center justify-center gap-2 w-full py-3 border border-gray-300 text-gray-900  text-sm hover:bg-gray-50 lg:py-4 lg:text-base"
+              >
+                <Activity className="w-4 h-4" />
+                Test Recovery Scenarios
+              </Link>
+              <p className="hidden lg:block text-xs text-gray-500 mt-3">
+                Simulate disaster scenarios to ensure funds are recoverable
+              </p>
+            </div>
+            <div className="lg:bg-white lg:bg-white lg:border lg:border-gray-300 lg:p-6">
               <h3 className="hidden lg:block text-lg font-semibold text-gray-900 mb-4">Communication</h3>
-              <button className="w-full py-3 border border-gray-300 rounded-lg text-sm hover:bg-gray-50 lg:py-4 lg:text-base">
+              <button className="w-full py-3 border border-gray-300  text-sm hover:bg-gray-50 lg:py-4 lg:text-base">
                 📚 Send Training Materials
               </button>
               <p className="hidden lg:block text-xs text-gray-500 mt-3">
@@ -140,7 +153,7 @@ export default function HeirsPage() {
 
           {/* Mobile Add Button */}
           <div className="px-6 pb-6 lg:hidden">
-            <button className="w-full py-3 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
+            <button className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800">
               + Add New Heir
             </button>
           </div>

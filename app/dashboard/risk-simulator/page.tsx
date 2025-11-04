@@ -20,12 +20,13 @@ import { PDFPacketExport } from '@/components/risk-simulator/PDFPacketExport'
 import { MultisigSetup, Scenario, SimulationResult, ShardConfig } from '@/lib/risk-simulator/types'
 import { analyzeRisk, simulateScenario } from '@/lib/risk-simulator/engine'
 import { PRESET_SCENARIOS } from '@/lib/risk-simulator/scenarios'
-import { CHEN_FAMILY_SETUP } from '@/lib/risk-simulator/demo-data'
 import { KeepNexusFile } from '@/lib/risk-simulator/file-export'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 export default function RiskSimulatorPage() {
-  // Setup state (Phase 2: fully customizable)
-  const [setup, setSetup] = useState<MultisigSetup>(CHEN_FAMILY_SETUP)
+  // Get setup from shared context (replaces hardcoded CHEN_FAMILY_SETUP)
+  const { setup: contextSetup, updateMultisig, updateGovernanceRules, updateHeirs, updateTrust } = useFamilySetup()
+  const [setup, setSetup] = useState<MultisigSetup>(contextSetup.multisig)
 
   // Scenarios to test
   const [scenarios] = useState<Scenario[]>(PRESET_SCENARIOS)
@@ -36,6 +37,11 @@ export default function RiskSimulatorPage() {
   // Simulation results
   const [results, setResults] = useState<SimulationResult[]>([])
   const [resilienceScore, setResilienceScore] = useState(0)
+
+  // Sync with context when it changes (e.g., from Vault updates)
+  useEffect(() => {
+    setSetup(contextSetup.multisig)
+  }, [contextSetup.multisig])
 
   // Run simulation on mount and when setup changes
   useEffect(() => {
@@ -84,39 +90,58 @@ export default function RiskSimulatorPage() {
   // Handle updating entire setup (Phase 2: M-of-N configuration)
   const handleUpdateSetup = (newSetup: MultisigSetup) => {
     setSetup(newSetup)
+    // Sync back to context so other pages can see the changes
+    updateMultisig(newSetup)
   }
 
   // Handle toggling shard mode for a key
   const handleToggleShard = (keyId: string, enabled: boolean) => {
-    setSetup(prev => ({
-      ...prev,
-      keys: prev.keys.map(key =>
+    const newSetup = {
+      ...setup,
+      keys: setup.keys.map(key =>
         key.id === keyId
           ? { ...key, type: enabled ? 'sharded' : 'full' }
           : key
       )
-    }))
+    }
+    setSetup(newSetup)
+    updateMultisig(newSetup)
   }
 
   // Handle updating shard configuration
   const handleUpdateShard = (keyId: string, config: ShardConfig) => {
-    setSetup(prev => ({
-      ...prev,
-      keys: prev.keys.map(key =>
+    const newSetup = {
+      ...setup,
+      keys: setup.keys.map(key =>
         key.id === keyId
           ? { ...key, shardConfig: config }
           : key
       )
-    }))
+    }
+    setSetup(newSetup)
+    updateMultisig(newSetup)
   }
 
   // Handle importing a .keepnexus file
   const handleImport = (file: KeepNexusFile) => {
     // Load the setup from imported file
     setSetup(file.setup)
+    updateMultisig(file.setup)
 
-    // TODO: In future, also load governance rules, etc.
-    // For now, just the setup configuration
+    // Load governance rules if present (Phase 5 complete!)
+    if (file.governance?.rules) {
+      updateGovernanceRules(file.governance.rules)
+    }
+
+    // Load heirs if present
+    if (file.heirs) {
+      updateHeirs(file.heirs)
+    }
+
+    // Load trust info if present
+    if (file.trust) {
+      updateTrust(file.trust)
+    }
   }
 
   return (

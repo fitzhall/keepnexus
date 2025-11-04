@@ -1,6 +1,7 @@
 /**
  * FileExport - Export current configuration as encrypted .keepnexus file
  * Bitcoin ethos: Your configuration, your file, your control
+ * NOW INCLUDES: Complete family plan with governance rules
  */
 
 'use client'
@@ -9,6 +10,7 @@ import { useState } from 'react'
 import { Download, Lock, AlertCircle } from 'lucide-react'
 import { MultisigSetup, SimulationResult } from '@/lib/risk-simulator/types'
 import { keepNexusFileService, AuditEntry } from '@/lib/risk-simulator/file-export'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
 import { m } from 'framer-motion'
 
 interface FileExportProps {
@@ -21,6 +23,7 @@ interface FileExportProps {
 }
 
 export function FileExport({ setup, analysis, existingAuditTrail }: FileExportProps) {
+  const { setup: contextSetup } = useFamilySetup()
   const [isOpen, setIsOpen] = useState(false)
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -45,8 +48,15 @@ export function FileExport({ setup, analysis, existingAuditTrail }: FileExportPr
     setIsExporting(true)
 
     try {
-      // Create the KeepNexus file
-      const file = keepNexusFileService.createFile(setup, analysis, existingAuditTrail)
+      // Create the KeepNexus file WITH FULL CONTEXT (governance rules, heirs, trust)
+      const file = keepNexusFileService.createFile(
+        setup,
+        analysis,
+        contextSetup.governanceRules,
+        contextSetup.heirs,
+        contextSetup.trust,
+        existingAuditTrail
+      )
 
       // Encrypt the file
       const encryptedFile = await keepNexusFileService.encryptFile(file, password)

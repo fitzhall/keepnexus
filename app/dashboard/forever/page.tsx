@@ -18,7 +18,7 @@ export default function ForeverPage() {
           <h1 className="text-lg font-semibold text-gray-900 lg:text-2xl lg:font-bold">Forever Mode</h1>
           <Infinity className="w-6 h-6 text-gray-700 lg:hidden" />
           <div className="hidden lg:block">
-            <Link href="/dashboard" className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-sm font-medium">
+            <Link href="/dashboard" className="px-4 py-2 border border-gray-300 hover:bg-gray-50 text-gray-900 text-sm font-medium">
               ← Back to Dashboard
             </Link>
           </div>

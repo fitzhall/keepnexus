@@ -12,18 +12,7 @@ import {
   Trash2
 } from 'lucide-react'
 import Link from 'next/link'
-
-interface GovernanceRule {
-  id: string
-  who: string
-  canDo: string
-  when: string
-  condition: string
-  status: 'active' | 'paused' | 'pending'
-  risk: 'low' | 'medium' | 'high'
-  lastExecuted?: Date
-  executions: number
-}
+import { useFamilySetup, GovernanceRule } from '@/lib/context/FamilySetup'
 
 const TEMPLATES = [
   {
@@ -62,7 +51,9 @@ const TEMPLATES = [
 ]
 
 export default function GovernatorPage() {
-  const [rules, setRules] = useState<GovernanceRule[]>([])
+  // Use shared context - governance rules now persist across app and in .keepnexus files
+  const { setup, updateGovernanceRules } = useFamilySetup()
+  const [rules, setRules] = useState<GovernanceRule[]>(setup.governanceRules)
   const [showCreate, setShowCreate] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATES[0] | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
@@ -74,43 +65,17 @@ export default function GovernatorPage() {
     condition: ''
   })
 
+  // Sync with context when it changes (e.g., from file import)
   useEffect(() => {
-    const mockRules: GovernanceRule[] = [
-      {
-        id: '001',
-        who: 'Emma Chen',
-        canDo: 'Withdraw 10%',
-        when: 'Immediately',
-        condition: 'Medical emergency verified',
-        status: 'active',
-        risk: 'medium',
-        lastExecuted: new Date('2024-10-15'),
-        executions: 2
-      },
-      {
-        id: '002',
-        who: 'Michael Chen Jr.',
-        canDo: 'Full Access',
-        when: 'After 90 days inactive',
-        condition: '2-of-3 multisig approval',
-        status: 'active',
-        risk: 'high',
-        executions: 0
-      },
-      {
-        id: '003',
-        who: 'Harris & Associates',
-        canDo: 'Export data',
-        when: 'Quarterly',
-        condition: 'Automatic',
-        status: 'active',
-        risk: 'low',
-        lastExecuted: new Date('2024-10-01'),
-        executions: 12
-      }
-    ]
-    setRules(mockRules)
-  }, [])
+    setRules(setup.governanceRules)
+  }, [setup.governanceRules])
+
+  // Sync local changes back to context
+  useEffect(() => {
+    if (JSON.stringify(rules) !== JSON.stringify(setup.governanceRules)) {
+      updateGovernanceRules(rules)
+    }
+  }, [rules, setup.governanceRules, updateGovernanceRules])
 
   const createRule = () => {
     if (!newRule.who || !newRule.canDo || !newRule.when || !newRule.condition) return
