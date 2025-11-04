@@ -113,12 +113,6 @@ export default function DashboardPage() {
     <>
       {/* Mobile View - Only shows on small screens */}
       <div className="block lg:hidden min-h-screen bg-white flex flex-col">
-        {/* Status Bar (simulated) */}
-        <div className="flex justify-between items-center px-4 py-2 text-xs text-gray-600">
-          <span>9:41</span>
-          <span>5G</span>
-        </div>
-
         {/* Header */}
         <div className="text-center px-6 pt-4 pb-6">
           <h1 className="text-3xl font-bold tracking-wide mb-2">KEEP NEXUS</h1>
