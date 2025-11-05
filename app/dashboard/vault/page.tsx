@@ -13,7 +13,12 @@ import { useFamilySetup } from '@/lib/context/FamilySetup'
 export default function VaultPage() {
   // Use context for vault settings
   const { setup, updateVaultSettings } = useFamilySetup()
-  const { vaultSettings, multisig } = setup
+  const { vaultSettings = {
+    walletType: 'hardware',
+    rotationFrequency: 90,
+    backupLocations: [],
+    testTransactionCompleted: false
+  }, multisig } = setup
   const [wallet, setWallet] = useState<WalletStatus>({ connected: false })
   const [shamir, setShamir] = useState<ShamirConfig | null>(null)
   const [showShamir, setShowShamir] = useState(false)
@@ -122,7 +127,10 @@ export default function VaultPage() {
 
       // Mark test transaction as completed if this is first backup
       updateVaultSettings({
-        ...vaultSettings,
+        walletType: vaultSettings?.walletType || 'hardware',
+        rotationFrequency: vaultSettings?.rotationFrequency || 90,
+        backupLocations: vaultSettings?.backupLocations || [],
+        lastRotationDate: vaultSettings?.lastRotationDate,
         testTransactionCompleted: true
       })
 
@@ -161,11 +169,15 @@ export default function VaultPage() {
       await new Promise(resolve => setTimeout(resolve, 1000))
 
       // Update rotation date in context
+      const rotationFreq = vaultSettings?.rotationFrequency || 90
       const nextRotationDate = new Date()
-      nextRotationDate.setDate(nextRotationDate.getDate() + vaultSettings.rotationFrequency)
+      nextRotationDate.setDate(nextRotationDate.getDate() + rotationFreq)
 
       updateVaultSettings({
-        ...vaultSettings,
+        walletType: vaultSettings?.walletType || 'hardware',
+        rotationFrequency: rotationFreq,
+        backupLocations: vaultSettings?.backupLocations || [],
+        testTransactionCompleted: vaultSettings?.testTransactionCompleted || false,
         lastRotationDate: new Date()
       })
 
@@ -248,7 +260,7 @@ export default function VaultPage() {
                     {multisig.threshold}-of-{multisig.totalKeys} Multisig Active
                   </p>
                   <p className="text-xs text-gray-500 lg:text-sm">
-                    Last rotation: {vaultSettings.lastRotationDate
+                    Last rotation: {vaultSettings?.lastRotationDate
                       ? new Date(vaultSettings.lastRotationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                       : 'Never'}
                   </p>
@@ -279,10 +291,10 @@ export default function VaultPage() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Next Key Rotation</p>
                   <p className="text-xs text-gray-500">
-                    {vaultSettings.lastRotationDate
+                    {vaultSettings?.lastRotationDate
                       ? new Date(
                           new Date(vaultSettings.lastRotationDate).getTime() +
-                          vaultSettings.rotationFrequency * 24 * 60 * 60 * 1000
+                          (vaultSettings.rotationFrequency || 90) * 24 * 60 * 60 * 1000
                         ).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
                       : 'Not scheduled'}
                   </p>
