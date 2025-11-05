@@ -513,7 +513,9 @@ export default function DashboardPage() {
                 <button
                   onClick={() => {
                     // Generate a simple text report
-                    const report = `KEEP NEXUS REPORT\n${new Date().toLocaleDateString()}\n\nFamily: ${setup.familyName}\n\nMultisig Configuration:\n- Threshold: ${setup.multisig.threshold} of ${setup.multisig.totalKeys}\n- Keys: ${setup.multisig.keys.map(k => k.holder).join(', ')}\n\nStatus: ALL SYSTEMS OPERATIONAL`
+                    const report = setup.multisig
+                      ? `KEEP NEXUS REPORT\n${new Date().toLocaleDateString()}\n\nFamily: ${setup.familyName}\n\nMultisig Configuration:\n- Threshold: ${setup.multisig.threshold} of ${setup.multisig.totalKeys}\n- Keys: ${setup.multisig.keys.map(k => k.holder).join(', ')}\n\nStatus: ALL SYSTEMS OPERATIONAL`
+                      : `KEEP NEXUS REPORT\n${new Date().toLocaleDateString()}\n\nFamily: ${setup.familyName}\n\nStatus: NO MULTISIG CONFIGURATION`
 
                     // Create downloadable file
                     const blob = new Blob([report], { type: 'text/plain' })
