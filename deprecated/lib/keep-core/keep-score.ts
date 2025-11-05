@@ -10,7 +10,7 @@ import {
   KEEPScoreComponents,
   ScoreRecommendation,
   TrendDirection
-} from './data-model';
+} from '@/lib/keep-core/data-model';
 
 // ============================================================================
 // Score Weights (from vision document)

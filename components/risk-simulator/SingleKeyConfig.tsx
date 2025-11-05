@@ -52,9 +52,10 @@ export function SingleKeyConfig({ keyHolder, onToggleShard, onUpdateShard }: Sin
       {/* Shard Configuration */}
       {keyHolder.type === 'sharded' && (
         <ShardConfig
-          config={keyHolder.shardConfig || { k: 2, m: 3, holders: [] }}
+          keyData={keyHolder}
           availableHolders={availableHolders}
-          onUpdate={onUpdateShard}
+          onToggleShard={(keyId, enabled) => onToggleShard(enabled)}
+          onUpdateShard={(keyId, config) => onUpdateShard(config)}
         />
       )}
     </div>

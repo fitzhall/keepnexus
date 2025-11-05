@@ -5,7 +5,7 @@
 
 'use client'
 
-import { MultisigSetup, Key, StorageType } from '@/lib/risk-simulator/types'
+import { MultisigSetup, Key, StorageType, KeyRole } from '@/lib/risk-simulator/types'
 import { useState } from 'react'
 import { Plus, Trash2, Copy } from 'lucide-react'
 
@@ -34,7 +34,7 @@ export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
   const handleUpdateTotalKeys = (totalKeys: number) => {
     const currentKeys = setup.keys.length
     let newKeys = [...setup.keys]
-    const roleAssignments = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'backup', 'tertiary']
+    const roleAssignments: KeyRole[] = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'trusted-friend', 'other']
 
     // Add keys if increasing
     if (totalKeys > currentKeys) {
@@ -42,7 +42,7 @@ export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
         newKeys.push({
           id: `key-${Date.now()}-${i}`,
           holder: `Key Holder ${i + 1}`,
-          role: roleAssignments[i] || 'backup',
+          role: roleAssignments[i] || 'other',
           type: 'full',
           storage: 'hardware-wallet',
           location: 'Location TBD'
@@ -85,12 +85,12 @@ export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
 
   // Add a new key
   const handleAddKey = () => {
-    const roleAssignments = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'backup', 'tertiary']
+    const roleAssignments: KeyRole[] = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'trusted-friend', 'other']
     const index = setup.keys.length
     const newKey: Key = {
       id: `key-${Date.now()}`,
       holder: `Key Holder ${index + 1}`,
-      role: roleAssignments[index] || 'backup',
+      role: roleAssignments[index] || 'other',
       type: 'full',
       storage: 'hardware-wallet',
       location: 'Location TBD'
@@ -107,12 +107,12 @@ export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
     const newKeys: Key[] = []
 
     // Define roles to assign (matching the scenarios)
-    const roleAssignments = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'backup', 'tertiary']
+    const roleAssignments: KeyRole[] = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'trusted-friend', 'other']
 
     for (let i = 0; i < totalKeys; i++) {
       // Determine holder name and role based on position
       let holderName = `Key Holder ${i + 1}`
-      let role = roleAssignments[i] || 'backup'
+      let role: KeyRole = roleAssignments[i] || 'other'
 
       // Use more descriptive names for common setups
       if (i === 0) {
@@ -256,8 +256,8 @@ export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
                       {/* Role, Storage & Location */}
                       <div className="grid grid-cols-3 gap-2">
                         <select
-                          value={key.role || 'backup'}
-                          onChange={(e) => handleUpdateKey(key.id, { role: e.target.value })}
+                          value={key.role || 'other'}
+                          onChange={(e) => handleUpdateKey(key.id, { role: e.target.value as KeyRole })}
                           className="text-xs border border-gray-300 rounded px-2 py-1.5 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white text-gray-900"
                         >
                           <option value="primary">Primary</option>
@@ -265,7 +265,8 @@ export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
                           <option value="child">Child</option>
                           <option value="attorney">Attorney</option>
                           <option value="custodian">Custodian</option>
-                          <option value="backup">Backup</option>
+                          <option value="trusted-friend">Trusted Friend</option>
+                          <option value="other">Other</option>
                         </select>
                         <select
                           value={key.storage}
@@ -305,7 +306,7 @@ export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
 
           {/* Info */}
           <div className="text-xs text-gray-500 bg-gray-50 rounded p-3">
-            <strong>Tip:</strong> Your multisig requires <strong>{setup.threshold}</strong> signatures out of <strong>{setup.totalKeys}</strong> total keys. Configure each key holder's name, storage type, and location for accurate risk analysis.
+            <strong>Tip:</strong> Your multisig requires <strong>{setup.threshold}</strong> signatures out of <strong>{setup.totalKeys}</strong> total keys. Configure each key holder&apos;s name, storage type, and location for accurate risk analysis.
           </div>
 
           {/* File Operations */}

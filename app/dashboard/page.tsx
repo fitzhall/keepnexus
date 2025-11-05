@@ -198,15 +198,17 @@ export default function DashboardPage() {
           holder: key.holder,
           storage: key.storage,
           location: key.location || 'Not specified',
-          role: key.role || 'signer',
-          type: 'standard' as const
-        })) || []
+          role: key.role || 'other',
+          type: 'full' as const
+        })) || [],
+        family: setup.familyName,
+        createdAt: new Date()
       }
 
       // Get scenarios and run simulations
       const scenarios = PRESET_SCENARIOS
       const results = scenarios.map(scenario => simulateScenario(multisigSetup, scenario))
-      const resilienceScore = Math.round(results.filter(r => r.canRecover).length / results.length * 100)
+      const resilienceScore = Math.round(results.filter(r => r.outcome === 'recoverable').length / results.length * 100)
 
       // Generate PDF
       const generator = new PDFPlaybookGenerator()

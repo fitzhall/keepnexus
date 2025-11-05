@@ -191,7 +191,7 @@ export function KeyAvailabilitySelector({ setup, onSelectionChange }: KeyAvailab
         /* Quick Test Mode */
         <div className="space-y-4">
           <p className="text-sm text-gray-600">
-            Run predefined tests to quickly assess your setup's resilience
+            Run predefined tests to quickly assess your setup&apos;s resilience
           </p>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

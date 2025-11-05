@@ -56,7 +56,7 @@ export function FirstRunModal({ isOpen, onDismiss, onImport, onStartFresh }: Fir
             </h3>
             <p className="text-sm text-gray-700 mb-3">
               KeepNexus uses <strong>.keepnexus</strong> files as your source of truth.
-              Think "Git for Bitcoin Estate Planning."
+              Think &quot;Git for Bitcoin Estate Planning.&quot;
             </p>
             <ul className="text-sm text-gray-600 space-y-1.5">
               <li className="flex items-start gap-2">
@@ -113,7 +113,7 @@ export function FirstRunModal({ isOpen, onDismiss, onImport, onStartFresh }: Fir
         <div className="mt-6 pt-4 border-t border-gray-200">
           <p className="text-xs text-gray-500 text-center">
             You can always import/export .keepnexus files from the dashboard header.
-            This welcome screen won't show again.
+            This welcome screen won&apos;t show again.
           </p>
         </div>
       </m.div>

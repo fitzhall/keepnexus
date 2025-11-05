@@ -14,7 +14,7 @@ import {
   KEEPScore,
   KEEPScoreComponents,
   TrendDirection
-} from './data-model';
+} from '@/lib/keep-core/data-model';
 
 // ============================================================================
 // KEEP-Aligned Weights

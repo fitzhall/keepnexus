@@ -64,55 +64,57 @@ export function createNewShardFile(familyName: string): LittleShardFile {
     // Demo wallet and keyholders for testing
     wallets: [{
       id: 'wallet1',
-      name: 'Family Vault',
-      type: 'multisig',
+      label: 'Family Vault',
+      descriptor: 'wsh(sortedmulti(2,xpub1...,xpub2...,xpub3...))',
       threshold: 2,
       total_keys: 3,
-      created_at: now,
-      last_used: now
+      created_at: now
     }],
     keyholders: [
       {
         id: 'kh1',
         name: 'Alice Chen',
         role: 'primary',
-        email: 'alice@example.com',
-        phone: '555-0100',
+        jurisdiction: 'California, USA',
         location: 'San Francisco',
         storage_type: 'hardware-wallet',
-        device_info: 'Ledger Nano X',
-        key_created: now,
         key_age_days: 0,
-        last_drill_participation: null,
-        is_active: true
+        is_sharded: false,
+        contact: {
+          email: 'alice@example.com',
+          phone: '555-0100'
+        },
+        last_verified: now
       },
       {
         id: 'kh2',
         name: 'Bob Chen',
-        role: 'secondary',
-        email: 'bob@example.com',
-        phone: '555-0101',
+        role: 'spouse',
+        jurisdiction: 'New York, USA',
         location: 'New York',
         storage_type: 'hardware-wallet',
-        device_info: 'Trezor Model T',
-        key_created: now,
         key_age_days: 0,
-        last_drill_participation: null,
-        is_active: true
+        is_sharded: false,
+        contact: {
+          email: 'bob@example.com',
+          phone: '555-0101'
+        },
+        last_verified: now
       },
       {
         id: 'kh3',
         name: 'Lawyer Smith',
-        role: 'tertiary',
-        email: 'smith@lawfirm.com',
-        phone: '555-0102',
+        role: 'attorney',
+        jurisdiction: 'Illinois, USA',
         location: 'Chicago',
         storage_type: 'paper',
-        device_info: 'Safety deposit box',
-        key_created: now,
         key_age_days: 0,
-        last_drill_participation: null,
-        is_active: true
+        is_sharded: false,
+        contact: {
+          email: 'smith@lawfirm.com',
+          phone: '555-0102'
+        },
+        last_verified: now
       }
     ],
 
@@ -270,7 +272,7 @@ export function validateShardFile(data: any): ValidationResult {
 export function exportToJSON(data: LittleShardFile, pretty = true): string {
   // Add file hash before export
   const exportData = { ...data };
-  exportData.file_hash = calculateHash(exportData);
+  exportData.file_hash = calculateHashSync(exportData);
 
   return pretty
     ? JSON.stringify(exportData, null, 2)
@@ -456,7 +458,7 @@ export function addEventLogEntry(
   // Add hash of previous entry for tamper evidence
   if (data.event_log && data.event_log.length > 0) {
     const previousEntry = data.event_log[data.event_log.length - 1];
-    entry.hash = calculateHash(previousEntry);
+    entry.hash = calculateHashSync(previousEntry);
   }
 
   return {

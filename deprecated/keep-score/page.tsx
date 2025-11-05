@@ -10,10 +10,10 @@ import { useState, useEffect } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
-import { ScoreDisplay } from '@/components/keep-dashboard/ScoreDisplay'
+import { ScoreDisplay } from '@/deprecated/components/ScoreDisplay'
 import { SimpleRiskMatrix } from '@/components/keep-dashboard/SimpleRiskMatrix'
 
-import { LittleShardFile } from '@/lib/keep-core/data-model'
+import { LittleShardFile, KeyRole } from '@/lib/keep-core/data-model'
 import {
   createNewShardFile,
   downloadFile,
@@ -142,16 +142,18 @@ export default function KEEPScorePage() {
           ...Array(3 - newKeyholders.length).fill(null).map((_, i) => ({
             id: `kh${newKeyholders.length + i + 1}`,
             name: `Key Holder ${newKeyholders.length + i + 1}`,
-            role: i === 0 ? 'secondary' : 'tertiary',
+            role: (i === 0 ? 'spouse' : 'other') as KeyRole,
             email: '',
             phone: '',
             location: 'TBD',
+            jurisdiction: 'US',
             storage_type: 'hardware-wallet' as const,
             device_info: 'TBD',
             key_created: new Date().toISOString(),
             key_age_days: 0,
             last_drill_participation: null,
-            is_active: true
+            is_active: true,
+            is_sharded: false
           }))
         ]
       }
@@ -165,16 +167,18 @@ export default function KEEPScorePage() {
           ...Array(5 - newKeyholders.length).fill(null).map((_, i) => ({
             id: `kh${newKeyholders.length + i + 1}`,
             name: `Key Holder ${newKeyholders.length + i + 1}`,
-            role: 'tertiary',
+            role: 'other' as KeyRole,
             email: '',
             phone: '',
             location: 'TBD',
+            jurisdiction: 'US',
             storage_type: 'hardware-wallet' as const,
             device_info: 'TBD',
             key_created: new Date().toISOString(),
             key_age_days: 0,
             last_drill_participation: null,
-            is_active: true
+            is_active: true,
+            is_sharded: false
           }))
         ]
       }
@@ -321,7 +325,6 @@ export default function KEEPScorePage() {
 
         {view === 'risk' && (
           <div className="space-y-6">
-            {console.log('[KEEPScorePage] Rendering risk view, keyholders:', shardFile.keyholders?.length || 0)}
             {/* Scenario Selector */}
             <div className="border border-gray-800 p-4 bg-white">
               <div className="text-sm font-bold mb-3 text-gray-900">SELECT SCENARIOS TO TEST:</div>

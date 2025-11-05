@@ -27,7 +27,7 @@ export function KEEPScoreWidget({ onScoreUpdate }: KEEPScoreWidgetProps) {
     if (setup.multisig) {
       if (setup.multisig.threshold >= 2) k += 40
       const hwCount = setup.multisig.keys.filter(key =>
-        key.storage === 'Hardware wallet' || key.storage === 'hardware-wallet'
+        key.storage === 'hardware-wallet'
       ).length
       k += Math.min(30, hwCount * 10)
       if (setup.multisig.keys.length >= 3) k += 30
@@ -36,9 +36,9 @@ export function KEEPScoreWidget({ onScoreUpdate }: KEEPScoreWidgetProps) {
 
     // E - Establish Legal (based on trust data)
     if (setup.trust) {
-      if (setup.trust.hasTrust) e1 += 40
-      if (setup.trust.hasWill) e1 += 30
-      if (setup.trust.hasLetterOfInstruction) e1 += 20
+      if (setup.trust.trustName) e1 += 40
+      if (setup.trust.trusteeNames && setup.trust.trusteeNames.length > 0) e1 += 30
+      if (setup.trust.dateEstablished) e1 += 30
     }
     e1 = Math.min(100, e1)
 
@@ -46,7 +46,7 @@ export function KEEPScoreWidget({ onScoreUpdate }: KEEPScoreWidgetProps) {
     if (setup.drillHistory && setup.drillHistory.length > 0) {
       e2 += 30
       const recentDrill = setup.drillHistory[setup.drillHistory.length - 1]
-      if (recentDrill && recentDrill.success) e2 += 30
+      if (recentDrill && recentDrill.result === 'passed') e2 += 30
     }
     if (setup.multisig && setup.multisig.keys.length >= 3) {
       const locations = new Set(setup.multisig.keys.map(k => k.location))
@@ -58,8 +58,9 @@ export function KEEPScoreWidget({ onScoreUpdate }: KEEPScoreWidgetProps) {
     if (setup.heirs && setup.heirs.length > 0) {
       p += 40
       p += Math.min(30, setup.heirs.length * 10)
-      const trainedCount = setup.heirs.filter(h => h.trained).length
-      p += Math.min(30, trainedCount * 10)
+      // Check for key holder heirs (as proxy for training)
+      const keyHolderCount = setup.heirs.filter(h => h.isKeyHolder).length
+      p += Math.min(30, keyHolderCount * 10)
     }
     p = Math.min(100, p)
 

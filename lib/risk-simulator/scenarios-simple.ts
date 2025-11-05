@@ -4,7 +4,7 @@
  * Universal, timeless, and non-morbid approach
  */
 
-import { Scenario, MultisigSetup } from './types'
+import { Scenario, MultisigSetup, KeyRole } from './types'
 
 /**
  * Generate key availability scenarios based on the current setup
@@ -59,7 +59,7 @@ export function generateKeyAvailabilityScenarios(setup: MultisigSetup): Scenario
         id: `role-${role}-unavailable`,
         name: `All ${role.charAt(0).toUpperCase() + role.slice(1)} Keys Unavailable`,
         description: `Testing when all keys with ${role} role are inaccessible`,
-        affectedRoles: [role],
+        affectedRoles: [role as KeyRole],
         unavailableHolders: indices.map(i => setup.keys[i].holder)
       })
     }
