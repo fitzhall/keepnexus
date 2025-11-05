@@ -13,10 +13,14 @@ import { m } from 'framer-motion'
 
 interface FileImportProps {
   onImport: (file: KeepNexusFile) => void
+  externalIsOpen?: boolean  // Optional external control
+  onClose?: () => void       // Optional close callback
 }
 
-export function FileImport({ onImport }: FileImportProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function FileImport({ onImport, externalIsOpen, onClose }: FileImportProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen
+  const setIsOpen = onClose || setInternalIsOpen
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [password, setPassword] = useState('')
   const [isImporting, setIsImporting] = useState(false)
@@ -93,14 +97,16 @@ export function FileImport({ onImport }: FileImportProps) {
 
   return (
     <>
-      {/* Import Button */}
-      <button
-        onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-      >
-        <Upload className="w-4 h-4" />
-        Import Configuration
-      </button>
+      {/* Import Button - only show if not externally controlled */}
+      {externalIsOpen === undefined && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+        >
+          <Upload className="w-4 h-4" />
+          Import Configuration
+        </button>
+      )}
 
       {/* Import Modal */}
       {isOpen && (

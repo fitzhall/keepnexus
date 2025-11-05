@@ -8,6 +8,19 @@ export type StorageType = 'hardware-wallet' | 'paper' | 'vault' | 'digital' | 'c
 export type OutcomeType = 'recoverable' | 'locked' | 'stolen' | 'degraded'
 
 /**
+ * Role-based key holder types for flexible scenario matching
+ * Allows scenarios to work with any holder names
+ */
+export type KeyRole =
+  | 'primary'        // Main estate owner (often first key)
+  | 'spouse'         // Spouse or life partner
+  | 'child'          // Children or heirs
+  | 'attorney'       // Legal representative
+  | 'custodian'      // Third-party service (bank, company)
+  | 'trusted-friend' // Friend or business partner
+  | 'other'          // Custom/unspecified role
+
+/**
  * Shard configuration for Shamir's Secret Sharing
  * k-of-m: need k shards to reconstruct the key
  */
@@ -22,11 +35,12 @@ export interface ShardConfig {
  */
 export interface Key {
   id: string
-  holder: string         // "Dad", "Mom", "Child A", etc.
+  holder: string         // Free text: ANY name the user types
+  role?: KeyRole         // Standardized role for scenario matching
   type: KeyType
   shardConfig?: ShardConfig
   storage: StorageType
-  location: string       // "Home safe", "Bank vault", etc.
+  location: string       // Free text: ANY location the user types
 }
 
 /**
@@ -42,12 +56,20 @@ export interface MultisigSetup {
 
 /**
  * A disaster scenario to simulate
+ * Supports multiple ways to specify affected keys for flexibility
  */
 export interface Scenario {
   id: string
   name: string                   // "Both Primaries Die"
   description: string            // Full description
-  unavailableHolders: string[]   // Who can't be reached
+
+  // Flexible matching (checked in priority order):
+  affectedRoles?: KeyRole[]     // e.g., ['primary', 'spouse'] - works with any names
+  affectedIndices?: number[]    // e.g., [0, 1] - first two keys
+  affectedLocations?: string[]  // e.g., ['Home', 'House'] - location-based risks
+
+  // Legacy/backward compatibility:
+  unavailableHolders: string[]   // Exact name match (deprecated)
   compromisedKeys?: string[]     // Keys attacker has (optional)
 }
 

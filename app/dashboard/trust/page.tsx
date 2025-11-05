@@ -15,14 +15,19 @@ import {
   AlertTriangle,
   FileCheck,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  Edit
 } from 'lucide-react'
 import Link from 'next/link'
 import { documentEncryption, DocumentType } from '@/lib/documents/encryption'
 import { documentStorage, type StoredDocument } from '@/lib/documents/storage'
 import { walletService } from '@/lib/bitcoin/wallet'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 export default function TrustPage() {
+  // Use context for trust info
+  const { setup, updateTrust } = useFamilySetup()
+  const trustInfo = setup.trust
   const [documents, setDocuments] = useState<StoredDocument[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isEncrypting, setIsEncrypting] = useState(false)
@@ -316,6 +321,33 @@ export default function TrustPage() {
         </div>
 
         <div className="lg:px-6">
+          {/* Trust Info */}
+          <div className="mx-4 mb-4 p-6 border border-gray-300 bg-white lg:mx-0 lg:mb-6">
+            <div className="flex items-start justify-between mb-4">
+              <div className="flex-1">
+                <h2 className="text-lg font-semibold text-gray-900 mb-2">
+                  {trustInfo.trustName || 'Living Trust'}
+                </h2>
+                {trustInfo.trusteeNames && trustInfo.trusteeNames.length > 0 && (
+                  <div className="space-y-1">
+                    <p className="text-sm text-gray-600">Trustees:</p>
+                    {trustInfo.trusteeNames.map((name, index) => (
+                      <p key={index} className="text-sm text-gray-900">• {name}</p>
+                    ))}
+                  </div>
+                )}
+                {trustInfo.lastReviewed && (
+                  <p className="text-xs text-gray-500 mt-3">
+                    Last reviewed: {new Date(trustInfo.lastReviewed).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                  </p>
+                )}
+              </div>
+              <button className="p-2 hover:bg-gray-50 border border-gray-300">
+                <Edit className="w-4 h-4 text-gray-600" />
+              </button>
+            </div>
+          </div>
+
           {/* Zero-Knowledge Security Banner */}
           <div className="mx-4 mb-4 p-4 bg-gray-50 border border-gray-300  lg:mx-0 lg:mb-6">
             <div className="flex items-start gap-3">
@@ -498,8 +530,17 @@ export default function TrustPage() {
 
           {/* Actions */}
           <div className="px-6 py-6 border-t border-gray-200 lg:border-0 lg:px-0">
-            <button className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800 lg:py-4 lg:text-base transition-colors">
-              Schedule Annual Review
+            <button
+              onClick={() => {
+                updateTrust({
+                  ...trustInfo,
+                  lastReviewed: new Date()
+                })
+                setSuccess('Annual review date updated successfully')
+              }}
+              className="w-full py-3 bg-gray-900 text-white  text-sm hover:bg-gray-800 lg:py-4 lg:text-base transition-colors"
+            >
+              Mark Trust as Reviewed
             </button>
           </div>
         </div>

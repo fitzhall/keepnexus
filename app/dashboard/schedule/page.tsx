@@ -1,28 +1,22 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, Calendar, Clock, Plus, X } from 'lucide-react'
+import { ArrowLeft, Plus, X } from 'lucide-react'
 import Link from 'next/link'
-
-interface ScheduleEvent {
-  id: string
-  title: string
-  description: string
-  date: string
-}
+import { useFamilySetup } from '@/lib/context/FamilySetup'
+import { ScheduleEvent } from '@/lib/risk-simulator/file-export'
 
 export default function SchedulePage() {
-  const [events, setEvents] = useState<ScheduleEvent[]>([
-    { id: '1', title: 'Key Rotation', description: 'Quarterly security rotation', date: 'Nov 14, 2025' },
-    { id: '2', title: 'Monthly Drill', description: 'Inheritance simulation', date: 'Nov 18, 2025' },
-    { id: '3', title: 'Trust Review', description: 'Annual document review', date: 'Dec 1, 2025' },
-    { id: '4', title: 'Tax Report', description: 'Auto-generated CSV', date: 'Dec 31, 2025' }
-  ])
+  // Use context instead of local state
+  const { setup, addScheduleEvent, removeScheduleEvent, updateScheduleEvents } = useFamilySetup()
+  const events = setup.scheduleEvents
+
   const [showAddModal, setShowAddModal] = useState(false)
   const [formData, setFormData] = useState({
     title: '',
     description: '',
-    date: ''
+    date: '',
+    type: 'custom' as const
   })
 
   const handleAddEvent = () => {
@@ -32,20 +26,35 @@ export default function SchedulePage() {
       id: Date.now().toString(),
       title: formData.title,
       description: formData.description,
-      date: formData.date
+      date: formData.date,
+      type: formData.type,
+      completed: false,
+      createdAt: new Date()
     }
 
-    setEvents([...events, newEvent].sort((a, b) =>
+    // Add to context (will auto-save to localStorage)
+    addScheduleEvent(newEvent)
+
+    // Sort events by date
+    const sortedEvents = [...events, newEvent].sort((a, b) =>
       new Date(a.date).getTime() - new Date(b.date).getTime()
-    ))
+    )
+    updateScheduleEvents(sortedEvents)
+
     setShowAddModal(false)
-    setFormData({ title: '', description: '', date: '' })
+    setFormData({ title: '', description: '', date: '', type: 'custom' })
   }
 
   const handleRemoveEvent = (id: string) => {
     if (confirm('Remove this event from schedule?')) {
-      setEvents(events.filter(event => event.id !== id))
+      removeScheduleEvent(id)
     }
+  }
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   }
 
   return (
@@ -89,7 +98,7 @@ export default function SchedulePage() {
                       <p className="text-xs text-gray-600">{event.description}</p>
                     </div>
                     <div className="flex items-center gap-3">
-                      <p className="text-xs text-gray-500">{event.date}</p>
+                      <p className="text-xs text-gray-500">{formatDate(event.date)}</p>
                       <button
                         onClick={() => handleRemoveEvent(event.id)}
                         className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 transition-opacity"
@@ -115,7 +124,7 @@ export default function SchedulePage() {
                 <button
                   onClick={() => {
                     setShowAddModal(false)
-                    setFormData({ title: '', description: '', date: '' })
+                    setFormData({ title: '', description: '', date: '', type: 'custom' })
                   }}
                   className="text-gray-400 hover:text-gray-900"
                 >
@@ -168,7 +177,7 @@ export default function SchedulePage() {
               <button
                 onClick={() => {
                   setShowAddModal(false)
-                  setFormData({ title: '', description: '', date: '' })
+                  setFormData({ title: '', description: '', date: '', type: 'custom' })
                 }}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
               >

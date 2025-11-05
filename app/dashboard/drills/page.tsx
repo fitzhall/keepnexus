@@ -3,16 +3,51 @@
 import { useState } from 'react'
 import { ArrowLeft, Bell, PlayCircle, CheckCircle, AlertCircle, X } from 'lucide-react'
 import Link from 'next/link'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
+import { DrillSettings } from '@/lib/risk-simulator/file-export'
 
 export default function DrillsPage() {
+  // Use context instead of local state
+  const { setup, updateDrillSettings } = useFamilySetup()
+  const { drillSettings, drillHistory } = setup
+
   const [showSettings, setShowSettings] = useState(false)
-  const [frequency, setFrequency] = useState('monthly')
-  const [participants, setParticipants] = useState(['Wife', 'Kid16'])
-  const [notificationDays, setNotificationDays] = useState('7')
+
+  // Local form state (will sync to context on save)
+  const [frequency, setFrequency] = useState(drillSettings.frequency)
+  const [participants, setParticipants] = useState(drillSettings.participants)
+  const [notificationDays, setNotificationDays] = useState(drillSettings.notificationDays.toString())
 
   const handleSaveSettings = () => {
-    // In production, save to backend/state management
+    // Save to context (will auto-persist to localStorage)
+    const updatedSettings: DrillSettings = {
+      frequency: frequency as 'weekly' | 'monthly' | 'quarterly' | 'annually',
+      participants,
+      notificationDays: parseInt(notificationDays),
+      autoReminder: drillSettings.autoReminder,
+      lastDrillDate: drillSettings.lastDrillDate,
+      nextDrillDate: drillSettings.nextDrillDate
+    }
+    updateDrillSettings(updatedSettings)
     setShowSettings(false)
+  }
+
+  // Format date for display
+  const formatDate = (date?: Date) => {
+    if (!date) return 'Not scheduled'
+    return new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  }
+
+  // Get result icon
+  const getResultIcon = (result: 'passed' | 'failed' | 'skipped') => {
+    switch (result) {
+      case 'passed':
+        return <CheckCircle className="w-4 h-4 text-gray-600" />
+      case 'failed':
+        return <AlertCircle className="w-4 h-4 text-red-600" />
+      case 'skipped':
+        return <AlertCircle className="w-4 h-4 text-gray-600" />
+    }
   }
 
   return (
@@ -37,8 +72,10 @@ export default function DrillsPage() {
           <div className="px-6 py-6 border-b border-gray-100 bg-gray-50 lg:bg-white lg:border lg:border-gray-300 lg:mb-6">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <p className="font-medium text-gray-900 lg:text-lg">Next Monthly Drill</p>
-                <p className="text-sm text-gray-700 lg:text-base">November 18, 2025</p>
+                <p className="font-medium text-gray-900 lg:text-lg">
+                  Next {drillSettings.frequency.charAt(0).toUpperCase() + drillSettings.frequency.slice(1)} Drill
+                </p>
+                <p className="text-sm text-gray-700 lg:text-base">{formatDate(drillSettings.nextDrillDate)}</p>
               </div>
               <PlayCircle className="w-8 h-8 text-gray-900 lg:w-10 lg:h-10" />
             </div>
@@ -54,44 +91,30 @@ export default function DrillsPage() {
             </div>
 
             <div className="divide-y divide-gray-300">
-              <div className="px-6 py-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 text-gray-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">October Drill</p>
-                      <p className="text-xs text-gray-600">All heirs passed</p>
+              {drillHistory.length === 0 ? (
+                <div className="px-6 py-8 text-center text-gray-500 text-sm">
+                  No drill history yet. Start your first drill to begin tracking.
+                </div>
+              ) : (
+                drillHistory.map((drill) => (
+                  <div key={drill.id} className="px-6 py-3 hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        {getResultIcon(drill.result)}
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">
+                            {new Date(drill.date).toLocaleDateString('en-US', { month: 'long' })} Drill
+                          </p>
+                          <p className="text-xs text-gray-600">{drill.notes || `${drill.participants.length} participants`}</p>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">
+                        {new Date(drill.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                      </span>
                     </div>
                   </div>
-                  <span className="text-xs text-gray-500">Oct 18</span>
-                </div>
-              </div>
-
-              <div className="px-6 py-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 text-gray-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">September Drill</p>
-                      <p className="text-xs text-gray-600">2/3 heirs passed</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">Sep 18</span>
-                </div>
-              </div>
-
-              <div className="px-6 py-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <AlertCircle className="w-4 h-4 text-gray-600" />
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">August Drill</p>
-                      <p className="text-xs text-gray-600">Skipped - vacation</p>
-                    </div>
-                  </div>
-                  <span className="text-xs text-gray-500">Aug 18</span>
-                </div>
-              </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -130,7 +153,7 @@ export default function DrillsPage() {
                 </label>
                 <select
                   value={frequency}
-                  onChange={(e) => setFrequency(e.target.value)}
+                  onChange={(e) => setFrequency(e.target.value as 'weekly' | 'monthly' | 'quarterly' | 'annually')}
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                 >
                   <option value="weekly">Weekly</option>
@@ -145,21 +168,21 @@ export default function DrillsPage() {
                   Required Participants
                 </label>
                 <div className="space-y-2">
-                  {['Wife', 'Kid16', 'D'].map((heir) => (
-                    <label key={heir} className="flex items-center gap-2">
+                  {setup.heirs.map((heir) => (
+                    <label key={heir.id} className="flex items-center gap-2">
                       <input
                         type="checkbox"
-                        checked={participants.includes(heir)}
+                        checked={participants.includes(heir.name)}
                         onChange={(e) => {
                           if (e.target.checked) {
-                            setParticipants([...participants, heir])
+                            setParticipants([...participants, heir.name])
                           } else {
-                            setParticipants(participants.filter(p => p !== heir))
+                            setParticipants(participants.filter(p => p !== heir.name))
                           }
                         }}
                         className="border-2 border-gray-900"
                       />
-                      <span className="text-sm text-gray-900">{heir}</span>
+                      <span className="text-sm text-gray-900">{heir.name}</span>
                     </label>
                   ))}
                 </div>

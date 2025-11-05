@@ -18,7 +18,7 @@ export function simulateScenario(
   const availableKeys: Key[] = []
 
   for (const key of setup.keys) {
-    if (isKeyAvailable(key, scenario)) {
+    if (isKeyAvailable(key, scenario, setup.keys)) {
       availableKeys.push(key)
     }
   }
@@ -52,17 +52,19 @@ export function simulateScenario(
 /**
  * Check if a specific key is available in a scenario
  * Handles both full keys and sharded keys
+ * Now uses role-based matching for flexibility
  */
-function isKeyAvailable(key: Key, scenario: Scenario): boolean {
+function isKeyAvailable(key: Key, scenario: Scenario, allKeys: Key[]): boolean {
 
-  // If the key holder is unavailable
-  if (scenario.unavailableHolders.includes(key.holder)) {
+  // First check if this key is affected by the scenario
+  const isAffected = isKeyAffectedByScenario(key, scenario, allKeys)
 
+  if (isAffected) {
     // Check if this key is sharded and can be reconstructed
     if (key.type === 'sharded' && key.shardConfig) {
       // Count how many shard holders are available
       const availableShardHolders = key.shardConfig.holders.filter(
-        holder => !scenario.unavailableHolders.includes(holder)
+        holder => !isHolderAffected(holder, scenario, allKeys)
       )
 
       // Can we reconstruct? Need k out of m shards
@@ -85,6 +87,60 @@ function isKeyAvailable(key: Key, scenario: Scenario): boolean {
 }
 
 /**
+ * Check if a key is affected by a scenario
+ * Uses multiple matching strategies for flexibility
+ */
+function isKeyAffectedByScenario(key: Key, scenario: Scenario, allKeys: Key[]): boolean {
+  // 1. Check by role (preferred method)
+  if (scenario.affectedRoles && key.role) {
+    if (scenario.affectedRoles.includes(key.role)) {
+      return true
+    }
+  }
+
+  // 2. Check by location (for geographic risks)
+  if (scenario.affectedLocations && scenario.affectedLocations.length > 0) {
+    // Case-insensitive location matching
+    const keyLocation = key.location.toLowerCase()
+    for (const affectedLocation of scenario.affectedLocations) {
+      if (keyLocation.includes(affectedLocation.toLowerCase())) {
+        return true
+      }
+    }
+  }
+
+  // 3. Check by index
+  if (scenario.affectedIndices) {
+    const keyIndex = allKeys.indexOf(key)
+    if (scenario.affectedIndices.includes(keyIndex)) {
+      return true
+    }
+  }
+
+  // 4. Legacy: Check by exact holder name (backward compatibility)
+  if (scenario.unavailableHolders.includes(key.holder)) {
+    return true
+  }
+
+  return false
+}
+
+/**
+ * Check if a shard holder is affected by a scenario
+ * Used when checking if shards can reconstruct a key
+ */
+function isHolderAffected(holderName: string, scenario: Scenario, allKeys: Key[]): boolean {
+  // Find if this holder name matches any affected key
+  const matchingKey = allKeys.find(k => k.holder === holderName)
+  if (matchingKey) {
+    return isKeyAffectedByScenario(matchingKey, scenario, allKeys)
+  }
+
+  // Also check legacy unavailable holders list
+  return scenario.unavailableHolders.includes(holderName)
+}
+
+/**
  * Generate recommendation for how to fix a locked scenario
  */
 function generateRecommendation(
@@ -97,7 +153,7 @@ function generateRecommendation(
   if (needed === 1) {
     // Find which key(s) are unavailable and could be sharded
     const unavailableKeys = setup.keys.filter(
-      key => scenario.unavailableHolders.includes(key.holder) && key.type !== 'sharded'
+      key => isKeyAffectedByScenario(key, scenario, setup.keys) && key.type !== 'sharded'
     )
 
     if (unavailableKeys.length > 0) {

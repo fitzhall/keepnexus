@@ -8,6 +8,15 @@
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { MultisigSetup, Key } from '@/lib/risk-simulator/types'
+import {
+  ScheduleEvent,
+  DrillRecord,
+  DrillSettings,
+  VaultSettings,
+  TaxSettings,
+  CaptainSettings,
+  ForeverSettings
+} from '@/lib/risk-simulator/file-export'
 
 // Governance Rule (from Governator)
 export interface GovernanceRule {
@@ -42,22 +51,25 @@ export interface TrustInfo {
   documentIds?: string[] // References to uploaded documents
 }
 
-// Complete Family Setup
+// Complete Family Setup (v1.2.0 - File-First System)
 export interface FamilySetupData {
   // Basic info
   familyName: string
 
-  // Multisig configuration (from Vault)
+  // Core estate planning data
   multisig: MultisigSetup
-
-  // Heirs/Beneficiaries
   heirs: Heir[]
-
-  // Trust information
   trust: TrustInfo
-
-  // Governance rules (from Governator)
   governanceRules: GovernanceRule[]
+
+  // Page-specific data (v1.2.0+)
+  scheduleEvents: ScheduleEvent[]
+  drillHistory: DrillRecord[]
+  drillSettings: DrillSettings
+  vaultSettings: VaultSettings
+  taxSettings: TaxSettings
+  captainSettings: CaptainSettings
+  foreverSettings: ForeverSettings
 
   // Metadata
   lastUpdated: Date
@@ -66,6 +78,8 @@ export interface FamilySetupData {
 
 interface FamilySetupContextType {
   setup: FamilySetupData
+
+  // Core data updates
   updateFamilyName: (name: string) => void
   updateMultisig: (multisig: MultisigSetup) => void
   updateHeirs: (heirs: Heir[]) => void
@@ -73,6 +87,22 @@ interface FamilySetupContextType {
   updateGovernanceRules: (rules: GovernanceRule[]) => void
   addGovernanceRule: (rule: GovernanceRule) => void
   removeGovernanceRule: (ruleId: string) => void
+
+  // Page-specific data updates (v1.2.0+)
+  updateScheduleEvents: (events: ScheduleEvent[]) => void
+  addScheduleEvent: (event: ScheduleEvent) => void
+  removeScheduleEvent: (id: string) => void
+
+  updateDrillHistory: (history: DrillRecord[]) => void
+  addDrillRecord: (record: DrillRecord) => void
+  updateDrillSettings: (settings: DrillSettings) => void
+
+  updateVaultSettings: (settings: VaultSettings) => void
+  updateTaxSettings: (settings: TaxSettings) => void
+  updateCaptainSettings: (settings: CaptainSettings) => void
+  updateForeverSettings: (settings: ForeverSettings) => void
+
+  // File operations
   loadFromFile: (data: FamilySetupData) => void
   resetToDefault: () => void
 }
@@ -90,6 +120,7 @@ const DEFAULT_SETUP: FamilySetupData = {
       {
         id: 'dad',
         holder: 'Dad (Michael)',
+        role: 'primary',
         type: 'full',
         storage: 'hardware-wallet',
         location: 'Home Safe'
@@ -97,6 +128,7 @@ const DEFAULT_SETUP: FamilySetupData = {
       {
         id: 'mom',
         holder: 'Mom (Emma)',
+        role: 'spouse',
         type: 'full',
         storage: 'hardware-wallet',
         location: 'Bank Safe Deposit'
@@ -104,6 +136,7 @@ const DEFAULT_SETUP: FamilySetupData = {
       {
         id: 'son',
         holder: 'Son (Mike Jr)',
+        role: 'child',
         type: 'full',
         storage: 'hardware-wallet',
         location: 'Personal Safe'
@@ -111,6 +144,7 @@ const DEFAULT_SETUP: FamilySetupData = {
       {
         id: 'attorney',
         holder: 'Attorney (Harris)',
+        role: 'attorney',
         type: 'full',
         storage: 'paper',
         location: 'Law Office Vault'
@@ -118,6 +152,7 @@ const DEFAULT_SETUP: FamilySetupData = {
       {
         id: 'custodian',
         holder: 'Custodian (Unchained)',
+        role: 'custodian',
         type: 'full',
         storage: 'custodian',
         location: 'Distributed'
@@ -178,6 +213,115 @@ const DEFAULT_SETUP: FamilySetupData = {
       executions: 0
     }
   ],
+
+  // Page-specific data defaults (v1.2.0+)
+  scheduleEvents: [
+    {
+      id: '1',
+      title: 'Key Rotation',
+      description: 'Quarterly security rotation',
+      date: '2025-11-14',
+      type: 'rotation',
+      completed: false
+    },
+    {
+      id: '2',
+      title: 'Monthly Drill',
+      description: 'Inheritance simulation',
+      date: '2025-11-18',
+      type: 'drill',
+      completed: false
+    },
+    {
+      id: '3',
+      title: 'Trust Review',
+      description: 'Annual document review',
+      date: '2025-12-01',
+      type: 'review',
+      completed: false
+    },
+    {
+      id: '4',
+      title: 'Tax Report',
+      description: 'Auto-generated CSV',
+      date: '2025-12-31',
+      type: 'report',
+      completed: false
+    }
+  ],
+
+  drillHistory: [
+    {
+      id: '1',
+      date: new Date('2024-10-18'),
+      participants: ['Emma Chen', 'Mike Chen Jr.'],
+      result: 'passed',
+      notes: 'All heirs successfully accessed backup keys',
+      duration: 15,
+      recoveryTime: 180
+    },
+    {
+      id: '2',
+      date: new Date('2024-09-18'),
+      participants: ['Emma Chen', 'Mike Chen Jr.'],
+      result: 'passed',
+      notes: '2/3 heirs passed, Mike Jr. needed guidance',
+      duration: 22,
+      recoveryTime: 240
+    }
+  ],
+
+  drillSettings: {
+    frequency: 'monthly',
+    participants: ['Emma Chen', 'Mike Chen Jr.'],
+    notificationDays: 7,
+    autoReminder: true,
+    lastDrillDate: new Date('2024-10-18'),
+    nextDrillDate: new Date('2025-11-18')
+  },
+
+  vaultSettings: {
+    walletType: 'hardware',
+    lastRotationDate: new Date('2024-08-14'),
+    rotationFrequency: 90,
+    backupLocations: ['Home Safe', 'Bank Vault', 'Attorney Office'],
+    testTransactionCompleted: true
+  },
+
+  taxSettings: {
+    reportingFrequency: 'quarterly',
+    cpaEmail: 'harris@cpafirm.com',
+    cpaName: 'Harris & Associates CPA',
+    autoGenerate: true,
+    lastReportDate: new Date('2024-09-30'),
+    nextReportDue: new Date('2025-12-31'),
+    taxStrategy: 'hodl'
+  },
+
+  captainSettings: {
+    advisorName: 'Sarah Thompson',
+    advisorEmail: 'sarah@keepadvisors.com',
+    advisorPhone: '+1-555-KEEP-BTC',
+    advisorFirm: 'Keep Advisors LLC',
+    serviceTier: 'nexus',
+    annualReviewDate: new Date('2025-10-15'),
+    lastCheckupDate: new Date('2024-10-15'),
+    professionalNetwork: {
+      attorney: 'Harris Law Group',
+      cpa: 'Harris & Associates CPA',
+      custodian: 'Unchained Capital'
+    }
+  },
+
+  foreverSettings: {
+    archivalEnabled: false,
+    redundantLocations: ['Home Safe', 'Bank Vault', 'Attorney Office'],
+    lastBackupDate: new Date('2024-10-18'),
+    generationPlan: 'Multi-generational Bitcoin wealth transfer plan established for Chen family descendants',
+    timeLockInstructions: 'Review time-lock vaults annually; activate emergency protocol if primary holder inactive >90 days'
+  },
+
+  // Metadata
   lastUpdated: new Date(),
   createdAt: new Date()
 }
@@ -191,8 +335,14 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
     if (stored) {
       try {
         const parsed = JSON.parse(stored, (key, value) => {
-          // Revive Date objects
-          if (key === 'lastUpdated' || key === 'createdAt' || key === 'lastReviewed' || key === 'lastExecuted') {
+          // Revive all Date objects (expanded for v1.2.0)
+          const dateFields = [
+            'lastUpdated', 'createdAt', 'lastReviewed', 'lastExecuted',
+            'date', 'lastDrillDate', 'nextDrillDate', 'lastRotationDate',
+            'lastReportDate', 'nextReportDue', 'annualReviewDate',
+            'lastCheckupDate', 'lastBackupDate'
+          ]
+          if (dateFields.includes(key)) {
             return value ? new Date(value) : undefined
           }
           return value
@@ -266,6 +416,89 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  // Schedule Events methods
+  const updateScheduleEvents = (events: ScheduleEvent[]) => {
+    setSetup(prev => ({
+      ...prev,
+      scheduleEvents: events,
+      lastUpdated: new Date()
+    }))
+  }
+
+  const addScheduleEvent = (event: ScheduleEvent) => {
+    setSetup(prev => ({
+      ...prev,
+      scheduleEvents: [...prev.scheduleEvents, event],
+      lastUpdated: new Date()
+    }))
+  }
+
+  const removeScheduleEvent = (id: string) => {
+    setSetup(prev => ({
+      ...prev,
+      scheduleEvents: prev.scheduleEvents.filter(e => e.id !== id),
+      lastUpdated: new Date()
+    }))
+  }
+
+  // Drill methods
+  const updateDrillHistory = (history: DrillRecord[]) => {
+    setSetup(prev => ({
+      ...prev,
+      drillHistory: history,
+      lastUpdated: new Date()
+    }))
+  }
+
+  const addDrillRecord = (record: DrillRecord) => {
+    setSetup(prev => ({
+      ...prev,
+      drillHistory: [...prev.drillHistory, record],
+      lastUpdated: new Date()
+    }))
+  }
+
+  const updateDrillSettings = (settings: DrillSettings) => {
+    setSetup(prev => ({
+      ...prev,
+      drillSettings: settings,
+      lastUpdated: new Date()
+    }))
+  }
+
+  // Page-specific settings methods
+  const updateVaultSettings = (settings: VaultSettings) => {
+    setSetup(prev => ({
+      ...prev,
+      vaultSettings: settings,
+      lastUpdated: new Date()
+    }))
+  }
+
+  const updateTaxSettings = (settings: TaxSettings) => {
+    setSetup(prev => ({
+      ...prev,
+      taxSettings: settings,
+      lastUpdated: new Date()
+    }))
+  }
+
+  const updateCaptainSettings = (settings: CaptainSettings) => {
+    setSetup(prev => ({
+      ...prev,
+      captainSettings: settings,
+      lastUpdated: new Date()
+    }))
+  }
+
+  const updateForeverSettings = (settings: ForeverSettings) => {
+    setSetup(prev => ({
+      ...prev,
+      foreverSettings: settings,
+      lastUpdated: new Date()
+    }))
+  }
+
   const loadFromFile = (data: FamilySetupData) => {
     setSetup({
       ...data,
@@ -285,6 +518,7 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
     <FamilySetupContext.Provider
       value={{
         setup,
+        // Core data updates
         updateFamilyName,
         updateMultisig,
         updateHeirs,
@@ -292,6 +526,18 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
         updateGovernanceRules,
         addGovernanceRule,
         removeGovernanceRule,
+        // Page-specific data updates
+        updateScheduleEvents,
+        addScheduleEvent,
+        removeScheduleEvent,
+        updateDrillHistory,
+        addDrillRecord,
+        updateDrillSettings,
+        updateVaultSettings,
+        updateTaxSettings,
+        updateCaptainSettings,
+        updateForeverSettings,
+        // File operations
         loadFromFile,
         resetToDefault
       }}

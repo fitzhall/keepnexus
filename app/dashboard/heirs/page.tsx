@@ -1,30 +1,25 @@
 'use client'
 
 import { useState } from 'react'
-import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Users, Activity, X } from 'lucide-react'
+import { ArrowLeft, UserPlus, AlertCircle, CheckCircle, Users, X, Activity } from 'lucide-react'
 import Link from 'next/link'
-
-interface Heir {
-  id: string
-  name: string
-  allocation: string
-  status: 'trained' | 'pending'
-  lastDrill: string
-}
+import { useFamilySetup, Heir } from '@/lib/context/FamilySetup'
 
 export default function HeirsPage() {
-  const [heirs, setHeirs] = useState<Heir[]>([
-    { id: '1', name: 'Wife', allocation: '60%', status: 'trained', lastDrill: 'Oct 18' },
-    { id: '2', name: 'Kid16', allocation: '30%', status: 'trained', lastDrill: 'Oct 18' },
-    { id: '3', name: 'D', allocation: '10%', status: 'pending', lastDrill: 'Never' }
-  ])
+  // Use context instead of local state
+  const { setup, updateHeirs } = useFamilySetup()
+  const heirs = setup.heirs
+
   const [showAddModal, setShowAddModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingHeir, setEditingHeir] = useState<Heir | null>(null)
   const [formData, setFormData] = useState({
     name: '',
+    relationship: '',
     allocation: '',
-    status: 'pending' as 'trained' | 'pending'
+    email: '',
+    phone: '',
+    isKeyHolder: false
   })
 
   const handleAddHeir = () => {
@@ -33,32 +28,43 @@ export default function HeirsPage() {
     const newHeir: Heir = {
       id: Date.now().toString(),
       name: formData.name,
-      allocation: formData.allocation,
-      status: formData.status,
-      lastDrill: 'Never'
+      relationship: formData.relationship,
+      allocation: parseInt(formData.allocation) || 0,
+      email: formData.email || undefined,
+      phone: formData.phone || undefined,
+      isKeyHolder: formData.isKeyHolder
     }
 
-    setHeirs([...heirs, newHeir])
+    // Update context (auto-saves to localStorage)
+    updateHeirs([...heirs, newHeir])
     setShowAddModal(false)
-    setFormData({ name: '', allocation: '', status: 'pending' })
+    setFormData({ name: '', relationship: '', allocation: '', email: '', phone: '', isKeyHolder: false })
   }
 
   const handleEditHeir = () => {
     if (!editingHeir || !formData.name || !formData.allocation) return
 
-    setHeirs(heirs.map(heir =>
+    updateHeirs(heirs.map(heir =>
       heir.id === editingHeir.id
-        ? { ...heir, name: formData.name, allocation: formData.allocation, status: formData.status }
+        ? {
+            ...heir,
+            name: formData.name,
+            relationship: formData.relationship,
+            allocation: parseInt(formData.allocation) || 0,
+            email: formData.email || undefined,
+            phone: formData.phone || undefined,
+            isKeyHolder: formData.isKeyHolder
+          }
         : heir
     ))
     setShowEditModal(false)
     setEditingHeir(null)
-    setFormData({ name: '', allocation: '', status: 'pending' })
+    setFormData({ name: '', relationship: '', allocation: '', email: '', phone: '', isKeyHolder: false })
   }
 
   const handleRemoveHeir = (id: string) => {
     if (confirm('Are you sure you want to remove this heir?')) {
-      setHeirs(heirs.filter(heir => heir.id !== id))
+      updateHeirs(heirs.filter(heir => heir.id !== id))
     }
   }
 
@@ -66,10 +72,30 @@ export default function HeirsPage() {
     setEditingHeir(heir)
     setFormData({
       name: heir.name,
-      allocation: heir.allocation,
-      status: heir.status
+      relationship: heir.relationship,
+      allocation: heir.allocation?.toString() || '',
+      email: heir.email || '',
+      phone: heir.phone || '',
+      isKeyHolder: heir.isKeyHolder || false
     })
     setShowEditModal(true)
+  }
+
+  // Check if heir has participated in recent drills
+  const isHeirTrained = (heirName: string) => {
+    return setup.drillHistory.some(drill =>
+      drill.participants.includes(heirName) && drill.result === 'passed'
+    )
+  }
+
+  // Get last drill date for heir
+  const getLastDrill = (heirName: string) => {
+    const drills = setup.drillHistory
+      .filter(drill => drill.participants.includes(heirName))
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    if (drills.length === 0) return 'Never'
+    return new Date(drills[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
   return (
@@ -110,7 +136,7 @@ export default function HeirsPage() {
               <div className="text-right lg:text-left">
                 <p className="text-sm text-gray-700 lg:text-base">Trained</p>
                 <p className="text-2xl font-semibold text-green-600 lg:text-3xl">
-                  {heirs.filter(h => h.status === 'trained').length}/{heirs.length}
+                  {heirs.filter(h => isHeirTrained(h.name)).length}/{heirs.length}
                 </p>
               </div>
               <div className="hidden lg:block flex-1">
@@ -118,11 +144,11 @@ export default function HeirsPage() {
                   <div className="flex-1 bg-gray-200  h-2">
                     <div
                       className="bg-green-600 h-2  transition-all"
-                      style={{ width: `${(heirs.filter(h => h.status === 'trained').length / heirs.length) * 100}%` }}
+                      style={{ width: `${heirs.length > 0 ? (heirs.filter(h => isHeirTrained(h.name)).length / heirs.length) * 100 : 0}%` }}
                     />
                   </div>
                   <span className="text-sm text-gray-700">
-                    {Math.round((heirs.filter(h => h.status === 'trained').length / heirs.length) * 100)}%
+                    {heirs.length > 0 ? Math.round((heirs.filter(h => isHeirTrained(h.name)).length / heirs.length) * 100) : 0}%
                   </span>
                 </div>
                 <p className="text-xs text-gray-500 mt-2">Training completion rate</p>
@@ -144,21 +170,25 @@ export default function HeirsPage() {
                   <div className="flex-1">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-gray-900 lg:text-lg">{heir.name}</p>
-                      {heir.status === 'trained' ? (
+                      {isHeirTrained(heir.name) ? (
                         <CheckCircle className="w-4 h-4 text-green-600" />
                       ) : (
                         <AlertCircle className="w-4 h-4 text-yellow-600" />
                       )}
+                      {heir.isKeyHolder && (
+                        <span className="px-2 py-0.5 bg-gray-900 text-white text-xs">Key Holder</span>
+                      )}
                     </div>
                     <div className="lg:flex lg:gap-6 lg:items-center lg:mt-2">
                       <p className="text-sm text-gray-700 mt-1 lg:mt-0">
-                        <span className="hidden lg:inline">Allocation: </span>
-                        <span className="font-medium">{heir.allocation}</span>
+                        <span className="font-medium">{heir.relationship}</span>
+                        <span className="mx-1">•</span>
+                        <span className="font-medium">{heir.allocation}% allocation</span>
                       </p>
                       <p className="text-xs text-gray-500 mt-1 lg:text-sm lg:mt-0">
-                        Last drill: {heir.lastDrill}
+                        Last drill: {getLastDrill(heir.name)}
                       </p>
-                      {heir.status === 'trained' ? (
+                      {isHeirTrained(heir.name) ? (
                         <span className="hidden lg:inline-flex px-2 py-1 bg-green-100 text-green-700 text-xs ">
                           ✓ Fully Trained
                         </span>
@@ -245,7 +275,7 @@ export default function HeirsPage() {
                 <button
                   onClick={() => {
                     setShowAddModal(false)
-                    setFormData({ name: '', allocation: '', status: 'pending' })
+                    setFormData({ name: '', relationship: '', allocation: '', email: '', phone: '', isKeyHolder: false })
                   }}
                   className="text-gray-400 hover:text-gray-900"
                 >
@@ -270,29 +300,68 @@ export default function HeirsPage() {
 
               <div>
                 <label className="block text-sm text-gray-700 mb-2">
-                  Allocation (%)
+                  Relationship
                 </label>
                 <input
                   type="text"
-                  value={formData.allocation}
-                  onChange={(e) => setFormData({ ...formData, allocation: e.target.value })}
-                  placeholder="e.g., 25%"
+                  value={formData.relationship}
+                  onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                  placeholder="e.g., Daughter, Spouse, Charity"
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                 />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-700 mb-2">
-                  Training Status
+                  Allocation (%)
                 </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'trained' | 'pending' })}
+                <input
+                  type="number"
+                  value={formData.allocation}
+                  onChange={(e) => setFormData({ ...formData, allocation: e.target.value })}
+                  placeholder="e.g., 25"
+                  min="0"
+                  max="100"
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
-                >
-                  <option value="pending">Pending Training</option>
-                  <option value="trained">Trained</option>
-                </select>
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Email (optional)
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="e.g., sarah@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Phone (optional)
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="e.g., +1 555-0123"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.isKeyHolder}
+                    onChange={(e) => setFormData({ ...formData, isKeyHolder: e.target.checked })}
+                    className="border-2 border-gray-900"
+                  />
+                  <span className="text-sm text-gray-900">This heir holds a key in the multisig</span>
+                </label>
               </div>
             </div>
 
@@ -300,7 +369,7 @@ export default function HeirsPage() {
               <button
                 onClick={() => {
                   setShowAddModal(false)
-                  setFormData({ name: '', allocation: '', status: 'pending' })
+                  setFormData({ name: '', relationship: '', allocation: '', email: '', phone: '', isKeyHolder: false })
                 }}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
               >
@@ -329,7 +398,7 @@ export default function HeirsPage() {
                   onClick={() => {
                     setShowEditModal(false)
                     setEditingHeir(null)
-                    setFormData({ name: '', allocation: '', status: 'pending' })
+                    setFormData({ name: '', relationship: '', allocation: '', email: '', phone: '', isKeyHolder: false })
                   }}
                   className="text-gray-400 hover:text-gray-900"
                 >
@@ -354,29 +423,68 @@ export default function HeirsPage() {
 
               <div>
                 <label className="block text-sm text-gray-700 mb-2">
-                  Allocation (%)
+                  Relationship
                 </label>
                 <input
                   type="text"
-                  value={formData.allocation}
-                  onChange={(e) => setFormData({ ...formData, allocation: e.target.value })}
-                  placeholder="e.g., 25%"
+                  value={formData.relationship}
+                  onChange={(e) => setFormData({ ...formData, relationship: e.target.value })}
+                  placeholder="e.g., Daughter, Spouse, Charity"
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
                 />
               </div>
 
               <div>
                 <label className="block text-sm text-gray-700 mb-2">
-                  Training Status
+                  Allocation (%)
                 </label>
-                <select
-                  value={formData.status}
-                  onChange={(e) => setFormData({ ...formData, status: e.target.value as 'trained' | 'pending' })}
+                <input
+                  type="number"
+                  value={formData.allocation}
+                  onChange={(e) => setFormData({ ...formData, allocation: e.target.value })}
+                  placeholder="e.g., 25"
+                  min="0"
+                  max="100"
                   className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
-                >
-                  <option value="pending">Pending Training</option>
-                  <option value="trained">Trained</option>
-                </select>
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Email (optional)
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="e.g., sarah@example.com"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-700 mb-2">
+                  Phone (optional)
+                </label>
+                <input
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  placeholder="e.g., +1 555-0123"
+                  className="w-full px-3 py-2 border border-gray-300 focus:outline-none focus:border-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.isKeyHolder}
+                    onChange={(e) => setFormData({ ...formData, isKeyHolder: e.target.checked })}
+                    className="border-2 border-gray-900"
+                  />
+                  <span className="text-sm text-gray-900">This heir holds a key in the multisig</span>
+                </label>
               </div>
             </div>
 
@@ -385,7 +493,7 @@ export default function HeirsPage() {
                 onClick={() => {
                   setShowEditModal(false)
                   setEditingHeir(null)
-                  setFormData({ name: '', allocation: '', status: 'pending' })
+                  setFormData({ name: '', relationship: '', allocation: '', email: '', phone: '', isKeyHolder: false })
                 }}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
               >

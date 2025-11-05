@@ -8,8 +8,12 @@ import {
 import Link from 'next/link'
 import { shamirService, ShamirConfig } from '@/lib/bitcoin/shamir'
 import { walletService, WalletStatus } from '@/lib/bitcoin/wallet'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 export default function VaultPage() {
+  // Use context for vault settings
+  const { setup, updateVaultSettings } = useFamilySetup()
+  const { vaultSettings, multisig } = setup
   const [wallet, setWallet] = useState<WalletStatus>({ connected: false })
   const [shamir, setShamir] = useState<ShamirConfig | null>(null)
   const [showShamir, setShowShamir] = useState(false)
@@ -115,6 +119,13 @@ export default function VaultPage() {
     try {
       // Simulate backup export delay
       await new Promise(resolve => setTimeout(resolve, 1500))
+
+      // Mark test transaction as completed if this is first backup
+      updateVaultSettings({
+        ...vaultSettings,
+        testTransactionCompleted: true
+      })
+
       // In production, this would generate encrypted backup
       setSuccessMessage('Backup exported successfully. Store it in a secure location.')
       setShowBackup(false)
@@ -148,7 +159,17 @@ export default function VaultPage() {
     try {
       // Simulate scheduling delay
       await new Promise(resolve => setTimeout(resolve, 1000))
-      setSuccessMessage('Key rotation scheduled for November 14, 2025')
+
+      // Update rotation date in context
+      const nextRotationDate = new Date()
+      nextRotationDate.setDate(nextRotationDate.getDate() + vaultSettings.rotationFrequency)
+
+      updateVaultSettings({
+        ...vaultSettings,
+        lastRotationDate: new Date()
+      })
+
+      setSuccessMessage(`Key rotation scheduled for ${nextRotationDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}`)
     } catch (err) {
       setError('Failed to schedule rotation. Please try again.')
     } finally {
@@ -223,23 +244,23 @@ export default function VaultPage() {
               <div className="flex items-center gap-3 mb-4">
                 <Shield className="w-5 h-5 text-green-600" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-900 lg:text-base">2-of-3 Multisig Active</p>
-                  <p className="text-xs text-gray-500 lg:text-sm">Last rotation: Oct 18</p>
+                  <p className="text-sm font-medium text-gray-900 lg:text-base">
+                    {multisig.threshold}-of-{multisig.totalKeys} Multisig Active
+                  </p>
+                  <p className="text-xs text-gray-500 lg:text-sm">
+                    Last rotation: {vaultSettings.lastRotationDate
+                      ? new Date(vaultSettings.lastRotationDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+                      : 'Never'}
+                  </p>
                 </div>
               </div>
               <div className="space-y-2 mb-4">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">You</span>
-                  <span className="text-green-600">✓ Active</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Wife</span>
-                  <span className="text-green-600">✓ Active</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Trusted Friend</span>
-                  <span className="text-green-600">✓ Active</span>
-                </div>
+                {multisig.keys.slice(0, 3).map((key) => (
+                  <div key={key.id} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{key.holder}</span>
+                    <span className="text-green-600">✓ Active</span>
+                  </div>
+                ))}
               </div>
               {/* Natural flow: Setup multisig → Test recovery scenarios */}
               <Link
@@ -257,7 +278,14 @@ export default function VaultPage() {
                 <RefreshCw className="w-5 h-5 text-gray-600" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900">Next Key Rotation</p>
-                  <p className="text-xs text-gray-500">November 14, 2025</p>
+                  <p className="text-xs text-gray-500">
+                    {vaultSettings.lastRotationDate
+                      ? new Date(
+                          new Date(vaultSettings.lastRotationDate).getTime() +
+                          vaultSettings.rotationFrequency * 24 * 60 * 60 * 1000
+                        ).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+                      : 'Not scheduled'}
+                  </p>
                 </div>
               </div>
               <button

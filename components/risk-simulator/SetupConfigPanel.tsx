@@ -11,7 +11,7 @@ import { Plus, Trash2, Copy } from 'lucide-react'
 
 interface SetupConfigPanelProps {
   setup: MultisigSetup
-  onUpdateSetup: (setup: MultisigSetup) => void
+  onUpdate: (setup: MultisigSetup) => void
 }
 
 const STORAGE_TYPES: StorageType[] = ['hardware-wallet', 'paper', 'vault', 'digital', 'custodian']
@@ -22,18 +22,19 @@ const PRESET_TEMPLATES = [
   { name: '4-of-7 (Advanced)', threshold: 4, totalKeys: 7 },
 ]
 
-export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps) {
+export function SetupConfigPanel({ setup, onUpdate }: SetupConfigPanelProps) {
   const [isExpanded, setIsExpanded] = useState(false)
 
   // Update M-of-N threshold
   const handleUpdateThreshold = (threshold: number) => {
-    onUpdateSetup({ ...setup, threshold })
+    onUpdate({ ...setup, threshold })
   }
 
   // Update total number of keys
   const handleUpdateTotalKeys = (totalKeys: number) => {
     const currentKeys = setup.keys.length
     let newKeys = [...setup.keys]
+    const roleAssignments = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'backup', 'tertiary']
 
     // Add keys if increasing
     if (totalKeys > currentKeys) {
@@ -41,6 +42,7 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
         newKeys.push({
           id: `key-${Date.now()}-${i}`,
           holder: `Key Holder ${i + 1}`,
+          role: roleAssignments[i] || 'backup',
           type: 'full',
           storage: 'hardware-wallet',
           location: 'Location TBD'
@@ -52,7 +54,7 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
       newKeys = newKeys.slice(0, totalKeys)
     }
 
-    onUpdateSetup({
+    onUpdate({
       ...setup,
       totalKeys,
       threshold: Math.min(setup.threshold, totalKeys), // Ensure threshold <= totalKeys
@@ -62,7 +64,7 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
 
   // Update individual key
   const handleUpdateKey = (keyId: string, updates: Partial<Key>) => {
-    onUpdateSetup({
+    onUpdate({
       ...setup,
       keys: setup.keys.map(key =>
         key.id === keyId ? { ...key, ...updates } : key
@@ -73,7 +75,7 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
   // Remove a key
   const handleRemoveKey = (keyId: string) => {
     const newKeys = setup.keys.filter(key => key.id !== keyId)
-    onUpdateSetup({
+    onUpdate({
       ...setup,
       totalKeys: newKeys.length,
       threshold: Math.min(setup.threshold, newKeys.length),
@@ -83,14 +85,17 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
 
   // Add a new key
   const handleAddKey = () => {
+    const roleAssignments = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'backup', 'tertiary']
+    const index = setup.keys.length
     const newKey: Key = {
       id: `key-${Date.now()}`,
-      holder: `Key Holder ${setup.keys.length + 1}`,
+      holder: `Key Holder ${index + 1}`,
+      role: roleAssignments[index] || 'backup',
       type: 'full',
       storage: 'hardware-wallet',
       location: 'Location TBD'
     }
-    onUpdateSetup({
+    onUpdate({
       ...setup,
       totalKeys: setup.keys.length + 1,
       keys: [...setup.keys, newKey]
@@ -100,16 +105,43 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
   // Load a preset template
   const handleLoadPreset = (threshold: number, totalKeys: number) => {
     const newKeys: Key[] = []
+
+    // Define roles to assign (matching the scenarios)
+    const roleAssignments = ['primary', 'spouse', 'child', 'attorney', 'custodian', 'backup', 'tertiary']
+
     for (let i = 0; i < totalKeys; i++) {
+      // Determine holder name and role based on position
+      let holderName = `Key Holder ${i + 1}`
+      let role = roleAssignments[i] || 'backup'
+
+      // Use more descriptive names for common setups
+      if (i === 0) {
+        holderName = 'Primary Holder'
+        role = 'primary'
+      } else if (i === 1) {
+        holderName = 'Spouse/Partner'
+        role = 'spouse'
+      } else if (i === 2) {
+        holderName = 'Trusted Third Party'
+        role = totalKeys === 3 ? 'attorney' : 'child'
+      } else if (i === 3) {
+        holderName = 'Attorney/Lawyer'
+        role = 'attorney'
+      } else if (i === 4) {
+        holderName = 'Backup Holder'
+        role = 'custodian'
+      }
+
       newKeys.push({
         id: `key-${Date.now()}-${i}`,
-        holder: `Key Holder ${i + 1}`,
+        holder: holderName,
+        role: role,
         type: 'full',
-        storage: 'hardware-wallet',
-        location: 'Location TBD'
+        storage: i < 2 ? 'hardware-wallet' : 'paper',
+        location: i === 0 ? 'Home Safe' : i === 1 ? 'Spouse Location' : 'Secure Location'
       })
     }
-    onUpdateSetup({
+    onUpdate({
       ...setup,
       threshold,
       totalKeys,
@@ -118,26 +150,23 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
   }
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 mb-6">
-      {/* Header - Always Visible */}
-      <div
-        className="p-4 flex items-center justify-between cursor-pointer hover:bg-gray-50"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div>
-          <h3 className="text-sm font-medium text-gray-900">Multisig Configuration</h3>
-          <p className="text-xs text-gray-500 mt-0.5">
-            {setup.threshold}-of-{setup.totalKeys} • {setup.keys.length} keys configured
-          </p>
+    <div className="space-y-4">
+      {/* Simple Header Display */}
+      <div className="text-center py-4">
+        <div className="text-3xl font-light text-gray-900">
+          {setup.threshold}-of-{setup.totalKeys} Multisig
         </div>
-        <button className="text-gray-400 hover:text-gray-600">
-          {isExpanded ? '▼' : '▶'}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="text-sm text-gray-500 hover:text-gray-700 mt-2"
+        >
+          {isExpanded ? 'Hide Configuration ▲' : 'Edit Configuration ▼'}
         </button>
       </div>
 
       {/* Expandable Configuration */}
       {isExpanded && (
-        <div className="px-4 pb-4 border-t border-gray-200 pt-4 space-y-6">
+        <div className="bg-white rounded-lg border border-gray-200 p-4 space-y-6">
 
           {/* Preset Templates */}
           <div>
@@ -149,9 +178,8 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
                 <button
                   key={preset.name}
                   onClick={() => handleLoadPreset(preset.threshold, preset.totalKeys)}
-                  className="text-xs px-3 py-2 border border-gray-300 rounded hover:bg-gray-50 flex items-center gap-1"
+                  className="text-sm px-4 py-2 border border-gray-700 rounded hover:bg-gray-100 text-gray-900 font-medium"
                 >
-                  <Copy className="w-3 h-3" />
                   {preset.name}
                 </button>
               ))}
@@ -225,8 +253,20 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
                         className="w-full text-sm border border-gray-300 rounded px-2 py-1.5 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white text-gray-900 font-medium"
                       />
 
-                      {/* Storage & Location */}
-                      <div className="grid grid-cols-2 gap-2">
+                      {/* Role, Storage & Location */}
+                      <div className="grid grid-cols-3 gap-2">
+                        <select
+                          value={key.role || 'backup'}
+                          onChange={(e) => handleUpdateKey(key.id, { role: e.target.value })}
+                          className="text-xs border border-gray-300 rounded px-2 py-1.5 focus:ring-2 focus:ring-gray-900 focus:border-gray-900 bg-white text-gray-900"
+                        >
+                          <option value="primary">Primary</option>
+                          <option value="spouse">Spouse</option>
+                          <option value="child">Child</option>
+                          <option value="attorney">Attorney</option>
+                          <option value="custodian">Custodian</option>
+                          <option value="backup">Backup</option>
+                        </select>
                         <select
                           value={key.storage}
                           onChange={(e) => handleUpdateKey(key.id, { storage: e.target.value as StorageType })}
@@ -265,7 +305,23 @@ export function SetupConfigPanel({ setup, onUpdateSetup }: SetupConfigPanelProps
 
           {/* Info */}
           <div className="text-xs text-gray-500 bg-gray-50 rounded p-3">
-            💡 <strong>Tip:</strong> Your multisig requires <strong>{setup.threshold}</strong> signatures out of <strong>{setup.totalKeys}</strong> total keys. Configure each key holder&apos;s name, storage type, and location for accurate risk analysis.
+            <strong>Tip:</strong> Your multisig requires <strong>{setup.threshold}</strong> signatures out of <strong>{setup.totalKeys}</strong> total keys. Configure each key holder's name, storage type, and location for accurate risk analysis.
+          </div>
+
+          {/* File Operations */}
+          <div className="pt-4 border-t border-gray-200">
+            <div className="text-xs text-gray-500 mb-2">Configuration Management</div>
+            <div className="flex gap-2">
+              <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                Import Configuration
+              </button>
+              <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                Export Configuration
+              </button>
+              <button className="px-3 py-1.5 text-sm border border-gray-300 rounded hover:bg-gray-50">
+                Generate PDF Report
+              </button>
+            </div>
           </div>
         </div>
       )}

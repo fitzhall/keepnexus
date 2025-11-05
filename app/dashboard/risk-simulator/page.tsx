@@ -3,16 +3,19 @@
 /**
  * Risk Simulator - Main Page
  * Interactive multisig risk analysis tool for Bitcoin estate planning advisors
+ * RESTORED: Original functionality with FamilySetup context integration
  */
 
 import { useState, useEffect } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
-import { RiskMatrix } from '@/components/risk-simulator/RiskMatrix'
+import { ScenarioCards } from '@/components/risk-simulator/ScenarioCards'
+import { MissionControlMinimal } from '@/components/risk-simulator/MissionControlMinimal'
 import { ResilienceScore } from '@/components/risk-simulator/ResilienceScore'
 import { ScenarioButtons } from '@/components/risk-simulator/ScenarioButtons'
+import { KeyAvailabilitySelector } from '@/components/risk-simulator/KeyAvailabilitySelector'
 import { RecoveryPath } from '@/components/risk-simulator/RecoveryPath'
-import { ConfigPanel } from '@/components/risk-simulator/ConfigPanel'
+import { SingleKeyConfig } from '@/components/risk-simulator/SingleKeyConfig'
 import { SetupConfigPanel } from '@/components/risk-simulator/SetupConfigPanel'
 import { FileExport } from '@/components/risk-simulator/FileExport'
 import { FileImport } from '@/components/risk-simulator/FileImport'
@@ -20,13 +23,17 @@ import { PDFPacketExport } from '@/components/risk-simulator/PDFPacketExport'
 import { MultisigSetup, Scenario, SimulationResult, ShardConfig, KeyType } from '@/lib/risk-simulator/types'
 import { analyzeRisk, simulateScenario } from '@/lib/risk-simulator/engine'
 import { PRESET_SCENARIOS } from '@/lib/risk-simulator/scenarios'
+import { generateKeyAvailabilityScenarios } from '@/lib/risk-simulator/scenarios-simple'
 import { KeepNexusFile } from '@/lib/risk-simulator/file-export'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 export default function RiskSimulatorPage() {
-  // Get setup from shared context (replaces hardcoded CHEN_FAMILY_SETUP)
-  const { setup: contextSetup, updateMultisig, updateGovernanceRules, updateHeirs, updateTrust } = useFamilySetup()
+  // Use FamilySetup context instead of hardcoded data
+  const { setup: contextSetup, updateMultisig } = useFamilySetup()
   const [setup, setSetup] = useState<MultisigSetup>(contextSetup.multisig)
+
+  // Scenario mode: simple (key availability) or classic (prescriptive)
+  const [scenarioMode, setScenarioMode] = useState<'simple' | 'classic'>('simple')
 
   // Scenarios to test
   const [scenarios] = useState<Scenario[]>(PRESET_SCENARIOS)
@@ -34,24 +41,49 @@ export default function RiskSimulatorPage() {
   // Selected scenarios for multi-scenario testing (empty = show all)
   const [selectedScenarioIds, setSelectedScenarioIds] = useState<string[]>([])
 
+  // For simple mode - track unavailable keys
+  const [unavailableKeyIds, setUnavailableKeyIds] = useState<string[]>([])
+
+  // View mode toggle
+  const [viewMode, setViewMode] = useState<'mission' | 'detailed'>('mission')
+
   // Simulation results
   const [results, setResults] = useState<SimulationResult[]>([])
   const [resilienceScore, setResilienceScore] = useState(0)
 
-  // Sync with context when it changes (e.g., from Vault updates)
+  // Sync with context when it changes
   useEffect(() => {
     setSetup(contextSetup.multisig)
   }, [contextSetup.multisig])
 
   // Run simulation on mount and when setup changes
   useEffect(() => {
-    const analysis = analyzeRisk(setup, scenarios)
-    setResults(analysis.results)
-    setResilienceScore(analysis.resilienceScore)
-  }, [setup, scenarios])
+    if (scenarioMode === 'simple' && unavailableKeyIds.length > 0) {
+      // In simple mode, create a single scenario from unavailable keys
+      const simpleScenario: Scenario = {
+        id: 'simple-test',
+        name: `${unavailableKeyIds.length} Key${unavailableKeyIds.length !== 1 ? 's' : ''} Unavailable`,
+        description: `Testing with selected keys unavailable`,
+        unavailableHolders: unavailableKeyIds.map(id =>
+          setup.keys.find(k => k.id === id)?.holder || ''
+        ).filter(Boolean)
+      }
+      const result = simulateScenario(setup, simpleScenario)
+      setResults([result])
+      setResilienceScore(result.outcome === 'recoverable' ? 100 : 0)
+    } else if (scenarioMode === 'classic') {
+      // Classic mode - use prescriptive scenarios
+      const analysis = analyzeRisk(setup, scenarios)
+      setResults(analysis.results)
+      setResilienceScore(analysis.resilienceScore)
+    } else {
+      // No selection - show default state
+      setResults([])
+      setResilienceScore(100)
+    }
+  }, [setup, scenarios, scenarioMode, unavailableKeyIds])
 
   // Filter scenarios and results based on selection
-  // If multiple scenarios selected, show them all + a combined scenario
   const displayScenarios = selectedScenarioIds.length > 0
     ? scenarios.filter(s => selectedScenarioIds.includes(s.id))
     : scenarios
@@ -71,6 +103,21 @@ export default function RiskSimulatorPage() {
             displayScenarios.flatMap(s => s.unavailableHolders)
           )
         ),
+        affectedRoles: Array.from(
+          new Set(
+            displayScenarios.flatMap(s => s.affectedRoles || [])
+          )
+        ),
+        affectedIndices: Array.from(
+          new Set(
+            displayScenarios.flatMap(s => s.affectedIndices || [])
+          )
+        ),
+        affectedLocations: Array.from(
+          new Set(
+            displayScenarios.flatMap(s => s.affectedLocations || [])
+          )
+        ),
         compromisedKeys: Array.from(
           new Set(
             displayScenarios.flatMap(s => s.compromisedKeys || [])
@@ -87,11 +134,10 @@ export default function RiskSimulatorPage() {
   // Count recoverable scenarios
   const recoverableCount = results.filter(r => r.outcome === 'recoverable').length
 
-  // Handle updating entire setup (Phase 2: M-of-N configuration)
+  // Handle updating entire setup
   const handleUpdateSetup = (newSetup: MultisigSetup) => {
     setSetup(newSetup)
-    // Sync back to context so other pages can see the changes
-    updateMultisig(newSetup)
+    updateMultisig(newSetup) // Sync back to context
   }
 
   // Handle toggling shard mode for a key
@@ -124,203 +170,186 @@ export default function RiskSimulatorPage() {
 
   // Handle importing a .keepnexus file
   const handleImport = (file: KeepNexusFile) => {
-    // Load the setup from imported file
     setSetup(file.setup)
     updateMultisig(file.setup)
-
-    // Load governance rules if present (Phase 5 complete!)
-    if (file.governance?.rules) {
-      updateGovernanceRules(file.governance.rules)
-    }
-
-    // Load heirs if present
-    if (file.heirs) {
-      updateHeirs(file.heirs)
-    }
-
-    // Load trust info if present
-    if (file.trust) {
-      updateTrust(file.trust)
-    }
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto">
-
-        {/* Header */}
-        <div className="bg-white border-b border-gray-200">
-          <div className="px-4 py-8 lg:px-8">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <Link href="/dashboard" className="lg:hidden">
-                  <ArrowLeft className="w-6 h-6 text-gray-700" />
-                </Link>
-                <div>
-                  <h1 className="text-3xl font-semibold text-gray-900">Risk Simulator</h1>
-                  <p className="text-gray-600 mt-2">
-                    Multisig vulnerability analysis and recovery planning
-                  </p>
-                </div>
-              </div>
-
-              <div className="hidden lg:flex items-center gap-3">
-                <PDFPacketExport
-                  setup={setup}
-                  results={results}
-                  scenarios={scenarios}
-                  resilienceScore={resilienceScore}
-                />
-                <FileImport onImport={handleImport} />
-                <FileExport
-                  setup={setup}
-                  analysis={{ results, resilienceScore }}
-                />
-                <Link
-                  href="/dashboard"
-                  className="px-5 py-2.5 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  Back
-                </Link>
-              </div>
-            </div>
-
-            {/* Mobile file actions */}
-            <div className="mt-4 lg:hidden flex flex-wrap items-center gap-2">
-              <PDFPacketExport
-                setup={setup}
-                results={results}
-                scenarios={scenarios}
-                resilienceScore={resilienceScore}
-              />
-              <FileImport onImport={handleImport} />
-              <FileExport
-                setup={setup}
-                analysis={{ results, resilienceScore }}
-              />
-            </div>
-
-            {/* Family info */}
-            <div className="mt-6 flex items-center gap-8">
+    <div className="min-h-screen bg-white">
+      {/* Header */}
+      <div className="border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-gray-900">
+                <ArrowLeft className="h-5 w-5 mr-1" />
+                Back
+              </Link>
               <div>
-                <div className="text-sm text-gray-500">Family</div>
-                <div className="text-lg font-medium text-gray-900">{setup.family}</div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500">Configuration</div>
-                <div className="text-lg font-medium text-gray-900">
-                  {setup.threshold}-of-{setup.totalKeys} Multisig
-                </div>
-              </div>
-              <div>
-                <div className="text-sm text-gray-500">Keys</div>
-                <div className="text-lg font-medium text-gray-900">
-                  {setup.keys.length} total
-                </div>
+                <h1 className="text-2xl font-bold text-gray-900">Risk Simulator</h1>
+                <p className="text-sm text-gray-600 mt-1">Test your multisig resilience against real-world scenarios</p>
               </div>
             </div>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="px-4 lg:px-8 py-8">
-          {/* Setup Configuration Panel (Phase 2) */}
-          <SetupConfigPanel
-            setup={setup}
-            onUpdateSetup={handleUpdateSetup}
-          />
+      {/* Main Content */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="space-y-8">
+          {/* Setup Configuration Panel - Combined display */}
+          <SetupConfigPanel setup={setup} onUpdate={handleUpdateSetup} />
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-
-            {/* Left Column - Score */}
-            <div className="lg:col-span-1">
-              <ResilienceScore
-                score={resilienceScore}
-                totalScenarios={scenarios.length}
-                recoverableScenarios={recoverableCount}
-              />
-
-              {/* Critical Risks */}
-              <div className="mt-6 bg-white border-2 border-gray-900 p-4">
-                <h3 className="text-xs font-mono uppercase text-gray-900 mb-3">
-                  Critical Risks
-                </h3>
-                {results.filter(r => r.outcome === 'locked').length === 0 ? (
-                  <p className="text-xs font-mono text-gray-600">
-                    ✓ NONE DETECTED
-                  </p>
-                ) : (
-                  <div className="space-y-2">
-                    {results
-                      .filter(r => r.outcome === 'locked')
-                      .map((result) => (
-                        <div
-                          key={result.scenario.id}
-                          className="text-xs font-mono p-2 bg-gray-100 border-l-4 border-gray-900"
-                        >
-                          <div className="text-gray-900">
-                            ! {result.scenario.name}
-                          </div>
-                          <div className="text-gray-600 mt-1">
-                            FUNDS LOCKED
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Key Configuration Panel */}
-              <div className="mt-6">
-                <ConfigPanel
-                  setup={setup}
-                  onToggleShard={handleToggleShard}
-                  onUpdateShard={handleUpdateShard}
-                />
+          {/* Mode Selection - Simple vs Classic */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-lg font-medium text-gray-900">Risk Analysis</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setScenarioMode('simple')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    scenarioMode === 'simple'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Simple Mode
+                </button>
+                <button
+                  onClick={() => setScenarioMode('classic')}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    scenarioMode === 'classic'
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Classic Scenarios
+                </button>
               </div>
             </div>
 
-            {/* Right Column - Risk Matrix */}
-            <div className="lg:col-span-3">
-              {/* Scenario Selector */}
-              <ScenarioButtons
-                scenarios={scenarios}
-                selectedScenarioIds={selectedScenarioIds}
-                onSelectScenarios={setSelectedScenarioIds}
-              />
+            {/* Mode description */}
+            <p className="text-sm text-gray-600">
+              {scenarioMode === 'simple'
+                ? 'Test key availability by selecting which keys are inaccessible. Focus on technical recovery without prescriptive scenarios.'
+                : 'Test your setup against predefined disaster scenarios like death, theft, or geographic risks.'}
+            </p>
+          </div>
 
-              {/* Risk Matrix */}
-              <div className="mt-6">
-                <RiskMatrix
-                  setup={setup}
-                  scenarios={displayScenarios}
-                  results={displayResults}
-                />
-              </div>
+          {/* Main Display - Conditional based on mode */}
+          {scenarioMode === 'simple' ? (
+            /* Simple Mode - Key Availability Testing */
+            <KeyAvailabilitySelector
+              setup={setup}
+              onSelectionChange={setUnavailableKeyIds}
+            />
+          ) : (
+            /* Classic Mode - Prescriptive Scenarios */
+            <>
+              {viewMode === 'mission' ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Left Column - Scenario Selection */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Test Scenarios</h3>
+                    <ScenarioButtons
+                      scenarios={scenarios}
+                      selectedIds={selectedScenarioIds}
+                      onToggle={(id) => {
+                        setSelectedScenarioIds(prev =>
+                          prev.includes(id)
+                            ? prev.filter(sid => sid !== id)
+                            : [...prev, id]
+                        )
+                      }}
+                      onClear={() => setSelectedScenarioIds([])}
+                    />
+                  </div>
 
-              {/* Combined Scenario Analysis */}
-              {combinedResult && (
-                <div className="mt-6">
-                  <div className="bg-gray-100 border-2 border-gray-900 p-4">
-                    <h3 className="text-xs font-mono text-gray-900 mb-2">
-                      ⚠ COMBINED SCENARIO RESULT
-                    </h3>
-                    <RecoveryPath result={combinedResult} />
+                  {/* Right Column - Results */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Analysis Results</h3>
+                    <MissionControlMinimal
+                      results={results}
+                      setup={setup}
+                      resilienceScore={resilienceScore}
+                      selectedScenarios={selectedScenarioIds}
+                    />
                   </div>
                 </div>
+              ) : (
+                <>
+                  {/* Scenario Selection Buttons (only in detailed view) */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Test Specific Scenarios</h3>
+                    <ScenarioButtons
+                      scenarios={scenarios}
+                      selectedIds={selectedScenarioIds}
+                      onToggle={(id) => {
+                        setSelectedScenarioIds(prev =>
+                          prev.includes(id)
+                            ? prev.filter(sid => sid !== id)
+                            : [...prev, id]
+                        )
+                      }}
+                      onClear={() => setSelectedScenarioIds([])}
+                    />
+                  </div>
+
+                  {/* Scenario Analysis Cards */}
+                  <div>
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">Scenario Analysis</h3>
+                    <ScenarioCards
+                      results={displayResults}
+                      setup={setup}
+                      selectedIds={selectedScenarioIds}
+                    />
+                  </div>
+                </>
               )}
 
-              {/* Recovery Details */}
-              <div className="mt-6 space-y-4">
-                <h3 className="text-sm font-medium text-gray-900">
-                  {selectedScenarioIds.length > 0 ? 'Individual Scenario Analysis' : 'All Scenarios'}
-                </h3>
-                {displayResults.map((result) => (
-                  <RecoveryPath key={result.scenario.id} result={result} />
-                ))}
+              {/* View Mode Toggle for Classic Mode */}
+              <div className="flex justify-center">
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setViewMode('mission')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      viewMode === 'mission'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Mission Control
+                  </button>
+                  <button
+                    onClick={() => setViewMode('detailed')}
+                    className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+                      viewMode === 'detailed'
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Detailed View
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Combined Scenario Result (only in classic mode when multiple selected) */}
+          {scenarioMode === 'classic' && combinedResult && selectedScenarioIds.length > 1 && (
+            <div className="border border-gray-300 rounded p-4 bg-white">
+              <h3 className="font-medium text-gray-900 mb-2">
+                Combined Analysis ({selectedScenarioIds.length} scenarios)
+              </h3>
+              <div className="text-sm text-gray-700">
+                <div>Keys Available: {combinedResult.availableKeys} of {setup.totalKeys}</div>
+                <div>Threshold Required: {setup.threshold}</div>
+                <div className="mt-2 font-medium">
+                  Result: {combinedResult.outcome === 'recoverable' ? 'RECOVERABLE' : 'LOCKED'}
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

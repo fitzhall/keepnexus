@@ -3,34 +3,93 @@
  * Shows keys (rows) × scenarios (columns) with color-coded availability
  */
 
-import { MultisigSetup, Scenario, SimulationResult } from '@/lib/risk-simulator/types'
+import { MultisigSetup, Scenario, SimulationResult, Key } from '@/lib/risk-simulator/types'
 import { RiskCell } from './RiskCell'
 
 interface RiskMatrixProps {
   setup: MultisigSetup
   scenarios: Scenario[]
   results: SimulationResult[]
+  selectedScenarioIds?: string[]
 }
 
-export function RiskMatrix({ setup, scenarios, results }: RiskMatrixProps) {
+export function RiskMatrix({ setup, scenarios, results, selectedScenarioIds = [] }: RiskMatrixProps) {
 
   /**
    * Check if a specific key is available in a specific scenario
+   * Using role-based matching to work with any holder names
    */
-  const isKeyAvailableInScenario = (keyHolder: string, scenario: Scenario): boolean => {
-    // Check if holder is unavailable in this scenario
-    if (scenario.unavailableHolders.includes(keyHolder)) {
+  const isKeyAvailableInScenario = (key: Key, scenario: Scenario): boolean => {
+    // Check if this key is affected by the scenario
+    const isAffected = isKeyAffectedByScenario(key, scenario, setup.keys)
+
+    if (isAffected) {
       // Check if key is sharded and can be reconstructed
-      const key = setup.keys.find(k => k.holder === keyHolder)
-      if (key?.type === 'sharded' && key.shardConfig) {
+      if (key.type === 'sharded' && key.shardConfig) {
         const availableShards = key.shardConfig.holders.filter(
-          h => !scenario.unavailableHolders.includes(h)
+          holder => !isHolderAffected(holder, scenario, setup.keys)
         )
         return availableShards.length >= key.shardConfig.k
       }
+      return false // Key is affected and not sharded (or can't reconstruct)
+    }
+
+    // Check if compromised
+    if (scenario.compromisedKeys?.includes(key.id)) {
       return false
     }
-    return true
+
+    return true // Key is available
+  }
+
+  /**
+   * Check if a key is affected by a scenario
+   * Uses multiple matching strategies for flexibility
+   */
+  const isKeyAffectedByScenario = (key: Key, scenario: Scenario, allKeys: Key[]): boolean => {
+    // 1. Check by role (preferred method)
+    if (scenario.affectedRoles && key.role) {
+      if (scenario.affectedRoles.includes(key.role)) {
+        return true
+      }
+    }
+
+    // 2. Check by location (for geographic risks like House Fire)
+    if (scenario.affectedLocations && scenario.affectedLocations.length > 0) {
+      // Case-insensitive location matching
+      const keyLocation = key.location.toLowerCase()
+      for (const affectedLocation of scenario.affectedLocations) {
+        if (keyLocation.includes(affectedLocation.toLowerCase())) {
+          return true
+        }
+      }
+    }
+
+    // 3. Check by index
+    if (scenario.affectedIndices) {
+      const keyIndex = allKeys.indexOf(key)
+      if (scenario.affectedIndices.includes(keyIndex)) {
+        return true
+      }
+    }
+
+    // 4. Legacy: Check by exact holder name (backward compatibility)
+    if (scenario.unavailableHolders.includes(key.holder)) {
+      return true
+    }
+
+    return false
+  }
+
+  /**
+   * Check if a shard holder is affected by a scenario
+   */
+  const isHolderAffected = (holderName: string, scenario: Scenario, allKeys: Key[]): boolean => {
+    const matchingKey = allKeys.find(k => k.holder === holderName)
+    if (matchingKey) {
+      return isKeyAffectedByScenario(matchingKey, scenario, allKeys)
+    }
+    return scenario.unavailableHolders.includes(holderName)
   }
 
   return (
@@ -42,14 +101,21 @@ export function RiskMatrix({ setup, scenarios, results }: RiskMatrixProps) {
               <th className="p-4 text-left text-sm font-medium text-gray-700">
                 Key Holder
               </th>
-              {scenarios.map((scenario) => (
-                <th
-                  key={scenario.id}
-                  className="p-4 text-center text-sm font-medium text-gray-700"
-                >
-                  <div className="whitespace-nowrap">{scenario.name}</div>
-                </th>
-              ))}
+              {scenarios.map((scenario) => {
+                const isSelected = selectedScenarioIds.includes(scenario.id)
+                return (
+                  <th
+                    key={scenario.id}
+                    className={`p-4 text-center text-sm font-medium ${
+                      isSelected
+                        ? 'bg-gray-900 text-white'
+                        : 'text-gray-700'
+                    }`}
+                  >
+                    <div className="whitespace-nowrap">{scenario.name}</div>
+                  </th>
+                )
+              })}
             </tr>
           </thead>
           <tbody>
@@ -66,13 +132,21 @@ export function RiskMatrix({ setup, scenarios, results }: RiskMatrixProps) {
                       : `${key.storage} • ${key.location}`}
                   </div>
                 </td>
-                {scenarios.map((scenario) => (
-                  <RiskCell
-                    key={`${key.id}-${scenario.id}`}
-                    isAvailable={isKeyAvailableInScenario(key.holder, scenario)}
-                    isCompromised={scenario.compromisedKeys?.includes(key.id)}
-                  />
-                ))}
+                {scenarios.map((scenario) => {
+                  const isAffected = isKeyAffectedByScenario(key, scenario, setup.keys) ||
+                                     scenario.compromisedKeys?.includes(key.id) || false
+                  const isAvailable = isKeyAvailableInScenario(key, scenario)
+                  const isCompromised = scenario.compromisedKeys?.includes(key.id) || false
+
+                  return (
+                    <RiskCell
+                      key={`${key.id}-${scenario.id}`}
+                      isAvailable={isAvailable}
+                      isCompromised={isCompromised}
+                      isAffected={isAffected}
+                    />
+                  )
+                })}
               </tr>
             ))}
           </tbody>

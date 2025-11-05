@@ -3,15 +3,25 @@
 import { useState, useEffect } from 'react'
 import {
   Home, Users, Shield, Bell, Calendar, Settings, BarChart3,
-  Lock, Wallet, CheckCircle, AlertTriangle, XCircle, Zap, Activity
+  Lock, Wallet, CheckCircle, AlertTriangle, XCircle, Zap, Activity, FileDown, FileText
 } from 'lucide-react'
 import Link from 'next/link'
 import { walletService, WalletStatus } from '@/lib/bitcoin/wallet'
 import { multisigService, MultisigConfig, PendingApproval } from '@/lib/bitcoin/multisig'
-import { securityScoreService } from '@/lib/security/score'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
+import { FileImport } from '@/components/risk-simulator/FileImport'
+import { FileExport } from '@/components/risk-simulator/FileExport'
+import { KeepNexusFile } from '@/lib/risk-simulator/file-export'
+import { FirstRunModal } from '@/components/FirstRunModal'
+import { PDFPlaybookGenerator } from '@/lib/risk-simulator/pdf-generator'
+import { PRESET_SCENARIOS } from '@/lib/risk-simulator/scenarios'
+import { simulateScenario } from '@/lib/risk-simulator/engine'
+import { KEEPScoreWidget } from '@/components/dashboard/KEEPScoreWidget'
 
+// Main dashboard component
 export default function DashboardPage() {
-  const [threatScore, setThreatScore] = useState(0)
+  // Use context for file import/export
+  const { setup, loadFromFile, resetToDefault } = useFamilySetup()
   const [wallet, setWallet] = useState<WalletStatus>({ connected: false })
   const [connecting, setConnecting] = useState(false)
   const [multisig, setMultisig] = useState<MultisigConfig | null>(null)
@@ -19,6 +29,12 @@ export default function DashboardPage() {
   const [settingUpMultisig, setSettingUpMultisig] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [approvingId, setApprovingId] = useState<string | null>(null)
+  const [keepScore, setKeepScore] = useState({ value: 0, k: 0, e1: 0, e2: 0, p: 0 })
+
+  // First-run experience state
+  const [showFirstRun, setShowFirstRun] = useState(false)
+  const [showFileImport, setShowFileImport] = useState(false)
+  const [mounted, setMounted] = useState(false)
 
   // Navigation items for mobile view and quick nav
   const navItems = [
@@ -28,16 +44,21 @@ export default function DashboardPage() {
     { icon: Bell, label: 'Drills', route: '/dashboard/drills' },
     { icon: Calendar, label: 'Next rotation:\nNov 14', route: '/dashboard/schedule' },
     { icon: Settings, label: 'Captain', route: '/dashboard/captain' },
+    { icon: AlertTriangle, label: 'Risk\nSimulator', route: '/dashboard/risk-simulator' },
     { icon: BarChart3, label: 'Tax CSV\nready', route: '/dashboard/tax' },
-    { icon: Zap, label: 'Governator™', route: '/dashboard/governator' },
-    { icon: Activity, label: 'Risk\nAnalyzer', route: '/dashboard/risk-simulator' }
+    { icon: Zap, label: 'Governator™', route: '/dashboard/governator' }
   ]
 
-  // Calculate threat score on mount and when security factors change
+  // Detect first-time users on mount
   useEffect(() => {
-    const score = securityScoreService.calculateScore()
-    setThreatScore(score.threatScore)
-  }, [wallet, multisig, pendingApprovals])
+    setMounted(true) // Fix hydration error for timestamp
+    const hasSetup = localStorage.getItem('familySetup')
+    const dismissed = localStorage.getItem('firstRunDismissed')
+
+    if (!hasSetup && !dismissed) {
+      setShowFirstRun(true)
+    }
+  }, [])
 
   const handleConnectWallet = async () => {
     setError(null)
@@ -96,6 +117,64 @@ export default function DashboardPage() {
     }
   }
 
+  // Handle importing a .keepnexus file from dashboard
+  const handleImport = (file: KeepNexusFile) => {
+    // Use the loadFromFile method which loads ALL data into context
+    loadFromFile({
+      familyName: file.family,
+      multisig: file.setup,
+      heirs: file.heirs || [],
+      trust: file.trust || {},
+      governanceRules: file.governance?.rules || [],
+      scheduleEvents: file.schedule || [],
+      drillHistory: file.drills?.history || [],
+      drillSettings: file.drills?.settings || {
+        frequency: 'monthly',
+        participants: [],
+        notificationDays: 7,
+        autoReminder: true
+      },
+      vaultSettings: file.vault || {
+        rotationFrequency: 90,
+        backupLocations: []
+      },
+      taxSettings: file.tax || {
+        reportingFrequency: 'quarterly',
+        autoGenerate: false
+      },
+      captainSettings: file.captain || {
+        serviceTier: 'diy'
+      },
+      foreverSettings: file.forever || {
+        archivalEnabled: false,
+        redundantLocations: []
+      },
+      lastUpdated: new Date(),
+      createdAt: file.created
+    })
+
+    console.log('✅ Complete configuration imported from dashboard')
+  }
+
+  // First-run modal handlers
+  const handleFirstRunDismiss = () => {
+    localStorage.setItem('firstRunDismissed', 'true')
+    setShowFirstRun(false)
+  }
+
+  const handleFirstRunImport = () => {
+    setShowFileImport(true) // Open file import modal
+  }
+
+  const handleFirstRunStartFresh = () => {
+    resetToDefault() // Load default Chen Family demo
+    console.log('✅ Started fresh with demo configuration')
+  }
+
+  const handleKeepScoreUpdate = (score: { value: number; k: number; e1: number; e2: number; p: number }) => {
+    setKeepScore(score)
+  }
+
   const getStatusIcon = (status: 'green' | 'yellow' | 'red') => {
     switch (status) {
       case 'green':
@@ -104,6 +183,51 @@ export default function DashboardPage() {
         return <AlertTriangle className="w-4 h-4 text-yellow-600 inline ml-2" />
       case 'red':
         return <XCircle className="w-4 h-4 text-red-600 inline ml-2" />
+    }
+  }
+
+  const generatePDF = async () => {
+    try {
+      // Create multisig setup from context data
+      const multisigSetup = {
+        name: setup.familyName,
+        threshold: setup.multisig?.threshold || 2,
+        totalKeys: setup.multisig?.keys.length || 3,
+        keys: setup.multisig?.keys.map((key, index) => ({
+          id: `key-${index}`,
+          holder: key.holder,
+          storage: key.storage,
+          location: key.location || 'Not specified',
+          role: key.role || 'signer',
+          type: 'standard' as const
+        })) || []
+      }
+
+      // Get scenarios and run simulations
+      const scenarios = PRESET_SCENARIOS
+      const results = scenarios.map(scenario => simulateScenario(multisigSetup, scenario))
+      const resilienceScore = Math.round(results.filter(r => r.canRecover).length / results.length * 100)
+
+      // Generate PDF
+      const generator = new PDFPlaybookGenerator()
+      const blob = await generator.generatePlaybook({
+        setup: multisigSetup,
+        results,
+        scenarios,
+        resilienceScore,
+        governanceRules: setup.governanceRules
+      })
+
+      // Download the PDF
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${setup.familyName.replace(/\s+/g, '-')}-recovery-playbook-${new Date().toISOString().split('T')[0]}.pdf`
+      a.click()
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error('Failed to generate PDF:', error)
+      alert('Failed to generate PDF. Please try again.')
     }
   }
 
@@ -116,17 +240,16 @@ export default function DashboardPage() {
         {/* Header */}
         <div className="text-center px-6 pt-4 pb-6">
           <h1 className="text-3xl font-bold tracking-wide mb-2">KEEP NEXUS</h1>
-          <p className="text-gray-600">Chen Family · Threat Score {threatScore}</p>
+          <p className="text-gray-600">{setup.familyName}</p>
           <div className="flex items-center justify-center gap-2 mt-2">
             <Lock className="w-4 h-4 text-gray-500" />
             <span className="text-gray-500 text-sm">Locked Forever</span>
           </div>
         </div>
 
-        {/* Threat Score Display */}
+        {/* Score Display */}
         <div className="text-center py-8">
-          <div className="text-8xl font-light text-gray-900">{threatScore}</div>
-          <p className="text-gray-600 mt-2">Threats detected</p>
+          <div className="text-8xl font-light text-gray-900">{keepScore.value}</div>
         </div>
 
         {/* I'm Alive Button */}
@@ -170,11 +293,27 @@ export default function DashboardPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900">KEEP NEXUS</h1>
-                  <p className="text-sm text-gray-600">Chen Family · {threatScore} threats detected</p>
+                  <p className="text-sm text-gray-600">{setup.familyName}</p>
                 </div>
-                <button className="px-4 py-2 bg-gray-900 text-white hover:bg-gray-800 text-sm">
-                  I&apos;m Alive
-                </button>
+                <div className="flex items-center gap-3">
+                  <FileImport onImport={handleImport} />
+                  <FileExport
+                    setup={setup.multisig}
+                    analysis={undefined}
+                  />
+                  <button
+                    onClick={() => {
+                      resetToDefault()
+                      console.log('✅ Demo data loaded (Chen Family)')
+                    }}
+                    className="px-4 py-2 bg-blue-600 text-white hover:bg-blue-700 text-sm rounded-lg"
+                  >
+                    Load Demo
+                  </button>
+                  <button className="px-4 py-2 bg-gray-900 text-white hover:bg-gray-800 text-sm">
+                    I&apos;m Alive
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -230,60 +369,6 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* KEEP Status - Table Format */}
-          <div className="bg-white border border-gray-300 mb-6">
-            <div className="px-6 py-3 border-b border-gray-300">
-              <h2 className="text-sm font-semibold text-gray-900">System Status</h2>
-            </div>
-            <table className="w-full text-sm">
-              <thead className="border-b border-gray-300">
-                <tr className="bg-gray-50">
-                  <th className="px-6 py-2 text-left font-medium text-gray-700">Component</th>
-                  <th className="px-6 py-2 text-left font-medium text-gray-700">Status</th>
-                  <th className="px-6 py-2 text-left font-medium text-gray-700">Details</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-300">
-                <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-3 text-gray-900">K – Keep it Secure</td>
-                  <td className="px-6 py-3">
-                    {wallet.connected ? (
-                      <span className="text-green-600">✓ Active</span>
-                    ) : (
-                      <span className="text-yellow-600">⚠ Pending</span>
-                    )}
-                  </td>
-                  <td className="px-6 py-3 text-gray-600">
-                    {wallet.connected
-                      ? `${multisig ? `${multisig.type} multisig` : 'Single sig'} · Key rotation: Nov 14`
-                      : 'Connect wallet to enable'
-                    }
-                  </td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-3 text-gray-900">E – Establish Legal Protection</td>
-                  <td className="px-6 py-3">
-                    <span className="text-yellow-600">⚠ Review</span>
-                  </td>
-                  <td className="px-6 py-3 text-gray-600">Trust notarized 3 weeks ago · Annual review needed</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-3 text-gray-900">E – Ensure Access</td>
-                  <td className="px-6 py-3">
-                    <span className="text-green-600">✓ Active</span>
-                  </td>
-                  <td className="px-6 py-3 text-gray-600">All heirs trained · Last drill: Oct 18 (all passed)</td>
-                </tr>
-                <tr className="hover:bg-gray-50">
-                  <td className="px-6 py-3 text-gray-900">P – Plan for the Future</td>
-                  <td className="px-6 py-3">
-                    <span className="text-red-600">✗ Action Required</span>
-                  </td>
-                  <td className="px-6 py-3 text-gray-600">CPA report in 12 days · IRS regulation update required</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
 
           {/* Pending Approvals */}
           {pendingApprovals.filter(a => a.status === 'pending').length > 0 && (
@@ -319,6 +404,62 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Two column layout for score and framework */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            {/* KEEP Score Widget */}
+            <div className="lg:col-span-1">
+              <KEEPScoreWidget onScoreUpdate={handleKeepScoreUpdate} />
+            </div>
+
+            {/* Security Framework Table */}
+            <div className="lg:col-span-2 bg-white border border-gray-300">
+              <div className="px-6 py-3 border-b border-gray-300">
+                <h2 className="text-sm font-semibold text-gray-900">Security Framework</h2>
+              </div>
+              <div className="p-6">
+                <table className="w-full text-sm">
+                  <thead className="text-gray-900 font-semibold border-b border-gray-300">
+                    <tr>
+                      <th className="text-left py-2">Component</th>
+                      <th className="text-left py-2">Status</th>
+                      <th className="text-left py-2">Action Required</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    <tr>
+                      <td className="py-3 font-semibold text-gray-900">K - Keep Secure</td>
+                      <td className="py-3">{getStatusIcon(keepScore.k >= 80 ? 'green' : keepScore.k >= 40 ? 'yellow' : 'red')}</td>
+                      <td className="py-3 text-gray-700">
+                        {keepScore.k < 80 ? 'Add hardware wallets, rotate keys' : 'Maintain current security'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 font-semibold text-gray-900">E - Establish Legal</td>
+                      <td className="py-3">{getStatusIcon(keepScore.e1 >= 80 ? 'green' : keepScore.e1 >= 40 ? 'yellow' : 'red')}</td>
+                      <td className="py-3 text-gray-700">
+                        {keepScore.e1 < 80 ? 'Complete trust documents' : 'Review annually'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 font-semibold text-gray-900">E - Ensure Access</td>
+                      <td className="py-3">{getStatusIcon(keepScore.e2 >= 80 ? 'green' : keepScore.e2 >= 40 ? 'yellow' : 'red')}</td>
+                      <td className="py-3 text-gray-700">
+                        {keepScore.e2 < 80 ? 'Run recovery drills' : 'Continue monthly drills'}
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 font-semibold text-gray-900">P - Plan Future</td>
+                      <td className="py-3">{getStatusIcon(keepScore.p >= 80 ? 'green' : keepScore.p >= 40 ? 'yellow' : 'red')}</td>
+                      <td className="py-3 text-gray-700">
+                        {keepScore.p < 80 ? 'Train heirs on recovery' : 'Update beneficiaries'}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
           {/* Quick Navigation - Compact Grid */}
           <div className="bg-white border border-gray-300">
             <div className="px-6 py-3 border-b border-gray-300">
@@ -348,15 +489,50 @@ export default function DashboardPage() {
               <h2 className="text-sm font-semibold text-gray-900">Quick Actions</h2>
             </div>
             <div className="p-4">
-              <div className="grid grid-cols-3 gap-3">
-                <button className="px-3 py-2 border border-gray-300 hover:bg-gray-50 transition-colors text-sm text-gray-900">
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  onClick={() => {
+                    // TODO: Implement send to lawyer
+                    console.log('Send to lawyer clicked')
+                    alert('Send to Lawyer feature coming soon')
+                  }}
+                  className="px-3 py-2 border border-gray-300 hover:bg-gray-50 transition-colors text-sm text-gray-900 flex items-center justify-center gap-2"
+                >
+                  <FileText className="w-4 h-4" />
                   Send to Lawyer
                 </button>
-                <button className="px-3 py-2 border border-gray-300 hover:bg-gray-50 transition-colors text-sm text-gray-900">
+                <Link
+                  href="/dashboard/drills"
+                  className="px-3 py-2 border border-gray-300 hover:bg-gray-50 transition-colors text-sm text-gray-900 text-center flex items-center justify-center gap-2"
+                >
+                  <Activity className="w-4 h-4" />
                   Run Drill Tonight
-                </button>
-                <button className="px-3 py-2 border border-gray-300 hover:bg-gray-50 transition-colors text-sm text-gray-900">
+                </Link>
+                <button
+                  onClick={() => {
+                    // Generate a simple text report
+                    const report = `KEEP NEXUS REPORT\n${new Date().toLocaleDateString()}\n\nFamily: ${setup.familyName}\n\nMultisig Configuration:\n- Threshold: ${setup.multisig.threshold} of ${setup.multisig.totalKeys}\n- Keys: ${setup.multisig.keys.map(k => k.holder).join(', ')}\n\nStatus: ALL SYSTEMS OPERATIONAL`
+
+                    // Create downloadable file
+                    const blob = new Blob([report], { type: 'text/plain' })
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a')
+                    a.href = url
+                    a.download = `keep-report-${new Date().toISOString().split('T')[0]}.txt`
+                    a.click()
+                    URL.revokeObjectURL(url)
+                  }}
+                  className="px-3 py-2 border border-gray-300 hover:bg-gray-50 transition-colors text-sm text-gray-900 flex items-center justify-center gap-2"
+                >
+                  <BarChart3 className="w-4 h-4" />
                   Generate Report
+                </button>
+                <button
+                  onClick={generatePDF}
+                  className="px-3 py-2 border border-gray-300 hover:bg-gray-50 transition-colors text-sm text-gray-900 flex items-center justify-center gap-2"
+                >
+                  <FileDown className="w-4 h-4" />
+                  Export PDF
                 </button>
               </div>
             </div>
@@ -365,7 +541,7 @@ export default function DashboardPage() {
           {/* Footer */}
           <div className="mt-8 text-center">
             <p className="text-xs text-gray-500">
-              keep.chen.com · Updated {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
+              keep.chen.com{mounted && ` · Updated ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`}
             </p>
             <p className="text-xs text-gray-500 mt-1">
               Questions? Contact support@keep.co or call 1-800-KEEP-BTC
@@ -373,6 +549,21 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+
+      {/* First-Run Welcome Modal */}
+      <FirstRunModal
+        isOpen={showFirstRun}
+        onDismiss={handleFirstRunDismiss}
+        onImport={handleFirstRunImport}
+        onStartFresh={handleFirstRunStartFresh}
+      />
+
+      {/* FileImport triggered from FirstRunModal */}
+      <FileImport
+        onImport={handleImport}
+        externalIsOpen={showFileImport}
+        onClose={() => setShowFileImport(false)}
+      />
     </>
   )
 }

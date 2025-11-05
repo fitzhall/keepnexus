@@ -48,13 +48,19 @@ export function FileExport({ setup, analysis, existingAuditTrail }: FileExportPr
     setIsExporting(true)
 
     try {
-      // Create the KeepNexus file WITH FULL CONTEXT (governance rules, heirs, trust)
+      // Create the KeepNexus file WITH FULL CONTEXT (governance rules, heirs, trust, page-specific data)
       const file = keepNexusFileService.createFile(
         setup,
         analysis,
         contextSetup.governanceRules,
         contextSetup.heirs,
         contextSetup.trust,
+        contextSetup.scheduleEvents,
+        { history: contextSetup.drillHistory, settings: contextSetup.drillSettings },
+        contextSetup.vaultSettings,
+        contextSetup.taxSettings,
+        contextSetup.captainSettings,
+        contextSetup.foreverSettings,
         existingAuditTrail
       )
 

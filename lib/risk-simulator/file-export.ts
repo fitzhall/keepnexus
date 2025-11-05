@@ -10,11 +10,113 @@ import { MultisigSetup, SimulationResult } from './types'
 import { DocumentEncryptionService } from '../documents/encryption'
 import { GovernanceRule, Heir, TrustInfo } from '../context/FamilySetup'
 
+/**
+ * Schedule Event - Recurring or one-time events for the family
+ * Used by: /dashboard/schedule
+ */
+export interface ScheduleEvent {
+  id: string
+  title: string
+  description: string
+  date: string                       // ISO date string
+  type: 'drill' | 'rotation' | 'review' | 'report' | 'custom'
+  completed?: boolean
+  createdAt?: Date
+}
+
+/**
+ * Drill Record - History of inheritance drill executions
+ * Used by: /dashboard/drills
+ */
+export interface DrillRecord {
+  id: string
+  date: Date
+  participants: string[]            // Names of heirs who participated
+  result: 'passed' | 'failed' | 'skipped'
+  notes?: string
+  duration?: number                 // Minutes
+  recoveryTime?: number             // Seconds to access first key
+}
+
+/**
+ * Drill Settings - Configuration for automated drill scheduling
+ * Used by: /dashboard/drills
+ */
+export interface DrillSettings {
+  frequency: 'weekly' | 'monthly' | 'quarterly' | 'annually'
+  participants: string[]            // Default participants (heir names)
+  notificationDays: number          // Days before drill to notify (e.g., 7)
+  autoReminder: boolean             // Send automatic reminders
+  lastDrillDate?: Date
+  nextDrillDate?: Date
+}
+
+/**
+ * Vault Settings - Wallet and key rotation configuration
+ * Used by: /dashboard/vault
+ */
+export interface VaultSettings {
+  walletType?: string               // 'hardware' | 'software' | 'paper'
+  lastRotationDate?: Date
+  rotationFrequency: number         // Days between key rotations
+  backupLocations: string[]         // Physical locations of backups
+  testTransactionCompleted?: boolean
+}
+
+/**
+ * Tax Settings - Tax reporting and CPA integration
+ * Used by: /dashboard/tax
+ */
+export interface TaxSettings {
+  reportingFrequency: 'monthly' | 'quarterly' | 'annually'
+  cpaEmail?: string
+  cpaName?: string
+  autoGenerate: boolean             // Auto-generate CSV reports
+  lastReportDate?: Date
+  nextReportDue?: Date
+  taxStrategy?: string              // 'hodl' | 'active-trader' | 'mining'
+}
+
+/**
+ * Captain Settings - Advisor/professional coordination
+ * Used by: /dashboard/captain
+ */
+export interface CaptainSettings {
+  advisorName?: string
+  advisorEmail?: string
+  advisorPhone?: string
+  advisorFirm?: string
+  serviceTier: 'nexus' | 'captain' | 'family-office' | 'diy'
+  annualReviewDate?: Date
+  lastCheckupDate?: Date
+  professionalNetwork?: {           // Connected professionals
+    attorney?: string
+    cpa?: string
+    custodian?: string
+  }
+}
+
+/**
+ * Forever Settings - Long-term archival and preservation
+ * Used by: /dashboard/forever
+ */
+export interface ForeverSettings {
+  archivalEnabled: boolean
+  ipfsHash?: string                 // IPFS hash if uploaded to distributed storage
+  arweaveId?: string                // Arweave transaction ID if permanently stored
+  redundantLocations: string[]      // List of backup locations
+  lastBackupDate?: Date
+  generationPlan?: string           // Multi-generational transfer instructions
+  timeLockInstructions?: string     // Instructions for time-locked vaults
+}
+
 export interface KeepNexusFile {
-  version: string                    // File format version (e.g., "1.0.0")
+  version: string                    // File format version (e.g., "1.2.0")
   created: Date                      // When this configuration was created
   modified: Date                     // Last modification timestamp
   family: string                     // Family name
+
+  // Core estate planning data
   setup: MultisigSetup              // Complete multisig configuration
   analysis?: {                       // Optional: Last risk analysis results
     results: SimulationResult[]
@@ -27,6 +129,19 @@ export interface KeepNexusFile {
   }
   heirs?: Heir[]                     // Beneficiaries and allocations
   trust?: TrustInfo                  // Trust/legal entity information
+
+  // Page-specific data (v1.2.0+)
+  schedule?: ScheduleEvent[]         // Scheduled events (rotations, drills, reviews)
+  drills?: {                         // Drill history and settings
+    history: DrillRecord[]
+    settings: DrillSettings
+  }
+  vault?: VaultSettings              // Wallet and rotation settings
+  tax?: TaxSettings                  // Tax reporting configuration
+  captain?: CaptainSettings          // Advisor/professional coordination
+  forever?: ForeverSettings          // Long-term preservation settings
+
+  // Audit trail
   auditTrail: AuditEntry[]          // Who did what when
 }
 
@@ -54,7 +169,7 @@ export interface KeepNexusMetadata {
 
 export class KeepNexusFileService {
   private encryptionService: DocumentEncryptionService
-  private readonly FILE_VERSION = '1.1.0' // Bumped for governance support
+  private readonly FILE_VERSION = '1.2.0' // Bumped for page-specific data (schedule, drills, vault, tax, captain, forever)
 
   constructor() {
     this.encryptionService = new DocumentEncryptionService()
@@ -62,7 +177,7 @@ export class KeepNexusFileService {
 
   /**
    * Create a new KeepNexus file from current configuration
-   * NOW INCLUDES: Governance rules, heirs, trust info - the complete family plan
+   * v1.2.0: NOW INCLUDES complete page-specific data for true file-first system
    */
   createFile(
     setup: MultisigSetup,
@@ -70,6 +185,12 @@ export class KeepNexusFileService {
     governanceRules?: GovernanceRule[],
     heirs?: Heir[],
     trust?: TrustInfo,
+    scheduleEvents?: ScheduleEvent[],
+    drillsData?: { history: DrillRecord[]; settings: DrillSettings },
+    vaultSettings?: VaultSettings,
+    taxSettings?: TaxSettings,
+    captainSettings?: CaptainSettings,
+    foreverSettings?: ForeverSettings,
     existingAuditTrail?: AuditEntry[]
   ): KeepNexusFile {
     const now = new Date()
@@ -79,11 +200,23 @@ export class KeepNexusFileService {
       created: existingAuditTrail ? new Date(existingAuditTrail[0].timestamp) : now,
       modified: now,
       family: setup.family,
+
+      // Core estate planning data
       setup,
       analysis: analysis ? { ...analysis, timestamp: now } : undefined,
       governance: governanceRules ? { rules: governanceRules } : undefined,
       heirs,
       trust,
+
+      // Page-specific data (v1.2.0+)
+      schedule: scheduleEvents,
+      drills: drillsData,
+      vault: vaultSettings,
+      tax: taxSettings,
+      captain: captainSettings,
+      forever: foreverSettings,
+
+      // Audit trail
       auditTrail: existingAuditTrail || []
     }
 
@@ -181,6 +314,14 @@ export class KeepNexusFileService {
       // Validate file format
       if (!file.version || !file.setup) {
         throw new Error('Invalid KeepNexus file format')
+      }
+
+      // Backward compatibility: v1.1.0 files won't have page-specific data
+      // These fields are optional in v1.2.0+, so old files import cleanly
+      // Migration happens automatically when user exports updated file
+      if (file.version === '1.1.0' || file.version === '1.0.0') {
+        // Old format is valid - optional fields will be undefined
+        console.log(`Importing legacy file format ${file.version}. Data will be upgraded on next export.`)
       }
 
       // Add import audit entry
