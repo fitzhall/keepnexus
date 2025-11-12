@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeAudit } from '@/lib/audit/analyzer';
-
-// Simple in-memory storage for jobs
-const jobStore = new Map<string, any>();
+import { saveJob, getJob, cleanupOldJobs } from '@/lib/audit/job-storage';
 
 // API authentication
 const API_KEY = process.env.AUDIT_API_KEY || 'btc-inherit-2024-secure';
@@ -25,7 +23,7 @@ export async function POST(request: NextRequest) {
     const jobId = `job-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
     // Store initial job status
-    jobStore.set(jobId, {
+    await saveJob(jobId, {
       status: 'processing',
       createdAt: new Date().toISOString(),
       data: null,
@@ -74,7 +72,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const job = jobStore.get(jobId);
+    const job = await getJob(jobId);
     if (!job) {
       return NextResponse.json(
         { error: 'Job not found' },
@@ -99,32 +97,29 @@ async function processAnalysis(jobId: string, formData: any) {
     // Perform the analysis
     const analysis = await analyzeAudit(formData);
 
+    // Get existing job data
+    const existingJob = await getJob(jobId);
+
     // Update job status
-    jobStore.set(jobId, {
+    await saveJob(jobId, {
       status: 'completed',
-      createdAt: jobStore.get(jobId)?.createdAt,
+      createdAt: existingJob?.createdAt || new Date().toISOString(),
       completedAt: new Date().toISOString(),
       data: analysis,
       error: null
     });
 
     // Clean up old jobs (keep last 100)
-    if (jobStore.size > 100) {
-      const sortedJobs = Array.from(jobStore.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]));
-
-      // Remove oldest jobs
-      while (jobStore.size > 100) {
-        const [oldestJobId] = sortedJobs.shift()!;
-        jobStore.delete(oldestJobId);
-      }
-    }
+    await cleanupOldJobs(100);
 
   } catch (error) {
+    // Get existing job data
+    const existingJob = await getJob(jobId);
+
     // Update job status with error
-    jobStore.set(jobId, {
+    await saveJob(jobId, {
       status: 'failed',
-      createdAt: jobStore.get(jobId)?.createdAt,
+      createdAt: existingJob?.createdAt || new Date().toISOString(),
       failedAt: new Date().toISOString(),
       data: null,
       error: error instanceof Error ? error.message : 'Analysis failed'

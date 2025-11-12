@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getJob, listJobs, deleteJob } from '@/lib/audit/job-storage';
 
 // API authentication
 const API_KEY = process.env.AUDIT_API_KEY || 'btc-inherit-2024-secure';
-
-// Shared job storage (same as used in audit/analyze)
-const jobStore = new Map<string, any>();
 
 export async function GET(request: NextRequest) {
   try {
@@ -24,13 +22,19 @@ export async function GET(request: NextRequest) {
 
     // If listing all jobs
     if (listAll === 'true') {
-      const jobs = Array.from(jobStore.entries()).map(([id, data]) => ({
-        id,
-        status: data.status,
-        createdAt: data.createdAt,
-        completedAt: data.completedAt,
-        failedAt: data.failedAt
-      }));
+      const jobIds = await listJobs();
+      const jobs = await Promise.all(
+        jobIds.map(async (id) => {
+          const data = await getJob(id);
+          return {
+            id,
+            status: data?.status,
+            createdAt: data?.createdAt,
+            completedAt: data?.completedAt,
+            failedAt: data?.failedAt
+          };
+        })
+      );
 
       return NextResponse.json({
         jobs,
@@ -46,7 +50,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const job = jobStore.get(jobId);
+    const job = await getJob(jobId);
     if (!job) {
       return NextResponse.json(
         { error: 'Job not found' },
@@ -83,8 +87,9 @@ export async function DELETE(request: NextRequest) {
 
     // Clear all jobs
     if (clearAll === 'true') {
-      const count = jobStore.size;
-      jobStore.clear();
+      const jobIds = await listJobs();
+      const count = jobIds.length;
+      await Promise.all(jobIds.map(id => deleteJob(id)));
       return NextResponse.json({
         message: 'All jobs cleared',
         cleared: count
@@ -99,14 +104,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    if (!jobStore.has(jobId)) {
+    const job = await getJob(jobId);
+    if (!job) {
       return NextResponse.json(
         { error: 'Job not found' },
         { status: 404 }
       );
     }
 
-    jobStore.delete(jobId);
+    await deleteJob(jobId);
     return NextResponse.json({
       message: 'Job deleted',
       jobId
