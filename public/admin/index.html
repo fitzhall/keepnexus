@@ -377,18 +377,14 @@
             }
         }
 
-        // Fetch submissions from Airtable
+        // Fetch submissions via secure API proxy
         async function fetchSubmissions() {
             try {
-                const response = await fetch(
-                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?sort[0][field]=Submitted&sort[0][direction]=desc`,
-                    {
-                        headers: {
-                            'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
-                            'Content-Type': 'application/json'
-                        }
+                const response = await fetch(`${API_BASE_URL}/api/submissions`, {
+                    headers: {
+                        'Authorization': `Bearer ${API_KEY}`
                     }
-                );
+                });
 
                 if (!response.ok) throw new Error('Failed to fetch data');
 
