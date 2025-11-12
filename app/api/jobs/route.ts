@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 const API_KEY = process.env.AUDIT_API_KEY || 'btc-inherit-2024-secure';
 
 // Shared job storage (same as used in audit/analyze)
-export const jobStore = new Map<string, any>();
+const jobStore = new Map<string, any>();
 
 export async function GET(request: NextRequest) {
   try {

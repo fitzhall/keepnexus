@@ -47,7 +47,7 @@ interface AuditReport {
 /**
  * Generate comprehensive PDF report from audit analysis
  */
-export async function generatePDFReport(report: AuditReport, formData: any): Promise<Buffer> {
+export async function generatePDF(report: AuditReport, formData: any): Promise<Buffer> {
   const doc = new jsPDF();
 
   const client = report.client || formData.full_name || 'Bitcoin Holder';
@@ -92,9 +92,9 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
   doc.setFontSize(12);
   doc.setTextColor(0, 0, 0);
   doc.text('Prepared For:', 50, 125);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text(client, 50, 135);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   doc.text(date, 50, 145);
 
   // KEEP Score highlight
@@ -143,9 +143,9 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
 
   metrics.forEach(([label, value]) => {
     doc.text(label, 30, y);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(value, 120, y);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     y += 8;
   });
 
@@ -154,9 +154,9 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
   // Executive summary text
   if (report.executive?.executive_summary) {
     doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('Assessment Overview', 20, y);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     y += 8;
 
     doc.setFontSize(10);
@@ -167,11 +167,11 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
   // Primary concern
   if (report.executive?.primary_concern) {
     doc.setFontSize(12);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.setTextColor(220, 53, 69);
     doc.text('PRIMARY CONCERN', 20, y);
     doc.setTextColor(0, 0, 0);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     y += 8;
 
     doc.setFontSize(10);
@@ -218,7 +218,7 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
     doc.rect(0, 0, 210, 15, 'F');
     doc.setTextColor(255, 255, 255);
     doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text(pillar.name, 20, 10);
 
     // Score card section
@@ -228,17 +228,17 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
 
     y += 8;
     doc.setFontSize(11);
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('KEEP Score:', 25, y);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     const score = pillar.data?.score || 0;
     doc.text(`${score.toFixed(1)} / 10`, 70, y);
 
     // Risk level indicator
     y += 8;
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('Risk Level:', 25, y);
-    doc.setFont(undefined, 'normal');
+    doc.setFont('helvetica', 'normal');
     const riskLevel = score < 3 ? 'Critical' : score < 5 ? 'High' : score < 7 ? 'Moderate' : 'Low';
     const riskColor: [number, number, number] =
       score < 3 ? [220, 53, 69] :
@@ -251,7 +251,7 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
 
     // Visual progress bar
     y += 8;
-    doc.setFont(undefined, 'bold');
+    doc.setFont('helvetica', 'bold');
     doc.text('Progress:', 25, y);
     doc.setDrawColor(200, 200, 200);
     doc.rect(70, y - 4, 100, 6);
@@ -263,11 +263,11 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
     // Critical Risk Points - Complete Findings (no truncation)
     if (pillar.data?.gaps && pillar.data.gaps.length > 0) {
       doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('Critical Risk Points Identified', 20, y);
       y += 10;
 
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       doc.setFontSize(10);
 
       // Display all gaps with complete text
@@ -280,17 +280,17 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
 
           // Re-add header for continuation
           doc.setFontSize(12);
-          doc.setFont(undefined, 'bold');
+          doc.setFont('helvetica', 'bold');
           doc.text(`${pillar.name} - Risk Points (Continued)`, 20, y);
           y += 10;
-          doc.setFont(undefined, 'normal');
+          doc.setFont('helvetica', 'normal');
           doc.setFontSize(10);
         }
 
         // Number and complete text with multi-line support
-        doc.setFont(undefined, 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(`${idx + 1}.`, 25, y);
-        doc.setFont(undefined, 'normal');
+        doc.setFont('helvetica', 'normal');
 
         // Split long text into multiple lines
         const gapLines = doc.splitTextToSize(gap, 155);
@@ -306,7 +306,7 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
     // Analyst Comment Box
     if (pillar.data?.analysis) {
       doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
+      doc.setFont('helvetica', 'bold');
       doc.text('Analyst Comment', 20, y);
       y += 8;
 
@@ -318,7 +318,7 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
 
       y += 6;
       doc.setFontSize(10);
-      doc.setFont(undefined, 'normal');
+      doc.setFont('helvetica', 'normal');
       const analysisLines = doc.splitTextToSize(pillar.data.analysis, 160);
       // Render each line individually to prevent overlap
       analysisLines.slice(0, 6).forEach((line, idx) => {
@@ -368,7 +368,7 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
         doc.rect(20, y, 40, 8, 'F');
         doc.setTextColor(255, 255, 255);
         doc.setFontSize(10);
-        doc.setFont(undefined, 'bold');
+        doc.setFont('helvetica', 'bold');
         doc.text(`Priority ${index + 1}`, 40, y + 6, { align: 'center' });
 
         y += 12;
@@ -376,12 +376,12 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
         // Action
         doc.setTextColor(0, 0, 0);
         doc.setFontSize(11);
-        doc.setFont(undefined, 'bold');
+        doc.setFont('helvetica', 'bold');
         y = addMultilineText(action.action, 20, y, 170);
         y += 5;
 
         // Rationale
-        doc.setFont(undefined, 'normal');
+        doc.setFont('helvetica', 'normal');
         doc.setFontSize(10);
         doc.text('Rationale: ', 20, y);
         y = addMultilineText(action.rationale, 50, y, 140);
@@ -389,9 +389,9 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
 
         // Timeline
         if (action.timeline) {
-          doc.setFont(undefined, 'bold');
+          doc.setFont('helvetica', 'bold');
           doc.text('Timeline: ', 20, y);
-          doc.setFont(undefined, 'normal');
+          doc.setFont('helvetica', 'normal');
           doc.text(action.timeline, 50, y);
           y += 5;
         }
@@ -411,9 +411,9 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
   y += 15;
 
   doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('Assessment Methodology', 20, y);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   y += 8;
 
   doc.setFontSize(10);
@@ -424,9 +424,9 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
   y += 10;
 
   doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('Risk Calculation', 20, y);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   y += 8;
 
   doc.setFontSize(10);
@@ -438,9 +438,9 @@ export async function generatePDFReport(report: AuditReport, formData: any): Pro
   y += 10;
 
   doc.setFontSize(12);
-  doc.setFont(undefined, 'bold');
+  doc.setFont('helvetica', 'bold');
   doc.text('Next Steps', 20, y);
-  doc.setFont(undefined, 'normal');
+  doc.setFont('helvetica', 'normal');
   y += 8;
 
   doc.setFontSize(10);
