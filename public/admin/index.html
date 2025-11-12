@@ -1,0 +1,1114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KEEP / AUDIT / CONTROL</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gray: #888888;
+            --light-gray: #f0f0f0;
+            --green: #00ff00;
+            --red: #ff0000;
+            --yellow: #ffff00;
+        }
+
+        body {
+            font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Code', monospace;
+            background: var(--white);
+            color: var(--black);
+            padding: 40px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            border-bottom: 2px solid var(--black);
+            padding-bottom: 20px;
+            margin-bottom: 40px;
+        }
+
+        h1 {
+            font-size: 14px;
+            font-weight: normal;
+            letter-spacing: 8px;
+            margin-bottom: 8px;
+        }
+
+        .status-bar {
+            display: flex;
+            gap: 40px;
+            font-size: 12px;
+            color: var(--gray);
+            margin-top: 10px;
+        }
+
+        .status-bar span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .indicator {
+            width: 8px;
+            height: 8px;
+            background: var(--green);
+            display: inline-block;
+        }
+
+        .indicator.offline {
+            background: var(--red);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--light-gray);
+            margin-bottom: 30px;
+        }
+
+        .stat {
+            text-align: left;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            color: var(--gray);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: normal;
+            margin-top: 4px;
+        }
+
+        .submissions-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .submissions-table th {
+            text-align: left;
+            padding: 12px 0;
+            border-bottom: 2px solid var(--black);
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: normal;
+        }
+
+        .submissions-table td {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--light-gray);
+            font-size: 13px;
+        }
+
+        .submissions-table tbody tr:hover {
+            background: var(--light-gray);
+        }
+
+        .name-cell {
+            font-weight: 500;
+        }
+
+        .score-cell {
+            font-family: 'SF Mono', monospace;
+        }
+
+        .tier-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: var(--black);
+            color: var(--white);
+        }
+
+        .tier-badge.critical {
+            background: var(--red);
+        }
+
+        .tier-badge.major {
+            background: #ff6600;
+        }
+
+        .tier-badge.moderate {
+            background: #ffaa00;
+            color: var(--black);
+        }
+
+        .tier-badge.minor {
+            background: var(--yellow);
+            color: var(--black);
+        }
+
+        .tier-badge.secure {
+            background: var(--green);
+            color: var(--black);
+        }
+
+        .date-cell {
+            color: var(--gray);
+            font-size: 12px;
+        }
+
+        .btn {
+            background: var(--white);
+            border: 1px solid var(--black);
+            padding: 6px 16px;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+
+        .btn:hover {
+            background: var(--black);
+            color: var(--white);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn.generating {
+            background: var(--black);
+            color: var(--white);
+        }
+
+        .loading-message, .error-message {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--gray);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .error-message {
+            color: var(--red);
+        }
+
+        .refresh-info {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid var(--light-gray);
+            font-size: 11px;
+            color: var(--gray);
+            text-align: center;
+        }
+
+        /* Progress Modal */
+        .progress-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .progress-modal.active {
+            display: flex;
+        }
+
+        .progress-content {
+            text-align: center;
+            max-width: 400px;
+        }
+
+        .progress-bar {
+            width: 300px;
+            height: 2px;
+            background: var(--light-gray);
+            margin: 20px auto;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            background: var(--black);
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--gray);
+            margin-top: 10px;
+        }
+
+        .sections-status {
+            font-size: 20px;
+            font-family: 'SF Mono', monospace;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>KEEP / AUDIT / CONTROL</h1>
+            <div class="status-bar">
+                <span><span class="indicator" id="serverIndicator"></span> SERVER</span>
+                <span id="lastRefresh">LAST REFRESH: --:--:--</span>
+                <span id="totalSubmissions">TOTAL: 0</span>
+                <span id="pendingReports">PENDING: 0</span>
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat">
+                <div class="stat-label">Today</div>
+                <div class="stat-value" id="todayCount">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">This Week</div>
+                <div class="stat-value" id="weekCount">0</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Avg Score</div>
+                <div class="stat-value" id="avgScore">--</div>
+            </div>
+            <div class="stat">
+                <div class="stat-label">Total Risk</div>
+                <div class="stat-value" id="totalRisk">$0</div>
+            </div>
+        </div>
+
+        <div class="submissions-container">
+            <table class="submissions-table">
+                <thead>
+                    <tr>
+                        <th style="width: 25%">Name</th>
+                        <th style="width: 15%">Score</th>
+                        <th style="width: 15%">Risk</th>
+                        <th style="width: 15%">Tier</th>
+                        <th style="width: 15%">Submitted</th>
+                        <th style="width: 15%">Action</th>
+                    </tr>
+                </thead>
+                <tbody id="submissionsBody">
+                    <tr>
+                        <td colspan="6" class="loading-message">INITIALIZING...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="refresh-info">
+            AUTO-REFRESH EVERY 30 SECONDS / PRESS R TO REFRESH MANUALLY
+        </div>
+    </div>
+
+    <!-- Progress Modal -->
+    <div class="progress-modal" id="progressModal">
+        <div class="progress-content">
+            <div>GENERATING AUDIT REPORT</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+            <div class="progress-text" id="progressText">INITIALIZING...</div>
+            <div class="sections-status" id="sectionsStatus">0/8</div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const AIRTABLE_TOKEN = ''; // Remove Airtable integration or move to env vars
+        const AIRTABLE_BASE_ID = '';
+        const AIRTABLE_TABLE_NAME = '';
+        const API_BASE_URL = ''; // Use relative paths for deployed version
+        const API_KEY = 'btc-inherit-2024-secure';
+
+        let allSubmissions = [];
+        let refreshInterval;
+        let currentJobId = null;
+        let pollInterval;
+
+        // Initialize
+        async function init() {
+            await checkServerStatus();
+            await fetchSubmissions();
+            startAutoRefresh();
+            setupKeyboardShortcuts();
+        }
+
+        // Check server status
+        async function checkServerStatus() {
+            const indicator = document.getElementById('serverIndicator');
+            try {
+                const response = await fetch(`${API_BASE_URL}/health`);
+                if (response.ok) {
+                    indicator.classList.remove('offline');
+                } else {
+                    indicator.classList.add('offline');
+                }
+            } catch (error) {
+                indicator.classList.add('offline');
+            }
+        }
+
+        // Fetch submissions from Airtable
+        async function fetchSubmissions() {
+            try {
+                const response = await fetch(
+                    `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}/${encodeURIComponent(AIRTABLE_TABLE_NAME)}?sort[0][field]=Submitted&sort[0][direction]=desc`,
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${AIRTABLE_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                if (!response.ok) throw new Error('Failed to fetch data');
+
+                const data = await response.json();
+                allSubmissions = data.records || [];
+
+                updateStats();
+                renderSubmissions();
+                updateRefreshTime();
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                showError('Failed to fetch submissions');
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            const now = new Date();
+            const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+            const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+            let todayCount = 0;
+            let weekCount = 0;
+            let totalScore = 0;
+            let scoreCount = 0;
+            let totalRisk = 0;
+
+            allSubmissions.forEach(record => {
+                const fields = record.fields;
+                const submitted = new Date(fields['Submitted']);
+
+                if (submitted >= today) todayCount++;
+                if (submitted >= weekAgo) weekCount++;
+
+                if (fields['KEEP Score']) {
+                    totalScore += fields['KEEP Score'];
+                    scoreCount++;
+                }
+
+                if (fields['BIRS']) {
+                    totalRisk += fields['BIRS'];
+                }
+            });
+
+            document.getElementById('todayCount').textContent = todayCount;
+            document.getElementById('weekCount').textContent = weekCount;
+            document.getElementById('avgScore').textContent = scoreCount > 0 ? Math.round(totalScore / scoreCount) : '--';
+            document.getElementById('totalRisk').textContent = '$' + Math.round(totalRisk).toLocaleString();
+            document.getElementById('totalSubmissions').textContent = `TOTAL: ${allSubmissions.length}`;
+            document.getElementById('pendingReports').textContent = `PENDING: ${allSubmissions.filter(r => !r.fields['Report Generated']).length}`;
+        }
+
+        // Render submissions table
+        function renderSubmissions() {
+            const tbody = document.getElementById('submissionsBody');
+            tbody.innerHTML = '';
+
+            if (allSubmissions.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="loading-message">NO SUBMISSIONS YET</td></tr>';
+                return;
+            }
+
+            allSubmissions.forEach(record => {
+                const fields = record.fields;
+                const tr = document.createElement('tr');
+
+                const tierClass = getTierClass(fields['Tier']);
+                const isGenerated = fields['Report Generated'];
+
+                tr.innerHTML = `
+                    <td class="name-cell">${fields['Name'] || 'Anonymous'}</td>
+                    <td class="score-cell">${fields['KEEP Score'] || '--'}/100</td>
+                    <td>$${Math.round(fields['BIRS'] || 0).toLocaleString()}</td>
+                    <td><span class="tier-badge ${tierClass}">${fields['Tier'] || 'Unknown'}</span></td>
+                    <td class="date-cell">${formatDate(fields['Submitted'])}</td>
+                    <td>
+                        <button class="btn ${isGenerated ? 'generated' : ''}"
+                                onclick="generateReport('${record.id}')"
+                                ${isGenerated ? 'disabled' : ''}>
+                            ${isGenerated ? 'GENERATED' : 'GENERATE'}
+                        </button>
+                    </td>
+                `;
+
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Generate report
+        async function generateReport(recordId) {
+            const record = allSubmissions.find(r => r.id === recordId);
+            if (!record) return;
+
+            const fields = record.fields;
+
+            // Parse the data from Airtable
+            let rawData;
+            try {
+                rawData = JSON.parse(fields['Notes'] || '{}');
+            } catch (e) {
+                console.error('Error parsing data:', e);
+                return;
+            }
+
+            // Structure data properly for the async server
+            // Extract name and email from Airtable fields
+            const fullName = fields['Name'] || rawData.name || 'Bitcoin Holder';
+            const email = fields['Email'] || rawData.email || '';
+
+            // Build fullData with required fields, including separated full_name
+            const fullData = {
+                ...rawData,
+                full_name: fullName,
+                email: email,
+                // Ensure other required fields exist
+                btc_value_usd: rawData.btc_value_usd || rawData.holdings || 100000,
+                primary_wallet_type: rawData.primary_wallet_type || 'Hardware Wallet',
+                primary_custody_platform: rawData.primary_custody_platform || 'Self-Custody',
+                family_status: rawData.family_status || 'Unknown',
+                age_bracket: rawData.age_bracket || 'Unknown'
+            };
+
+            // Extract or calculate scores from Airtable fields or rawData
+            const keepScore = fields['KEEP Score'] || rawData.keep_score || rawData.keepScore || 50;
+            const birs = fields['BIRS'] || rawData.birs || rawData.risk || (fullData.btc_value_usd * (1 - keepScore/100));
+
+            // Extract pillar scores
+            const pillarScores = rawData.pillarScores || {
+                secure: rawData.secure || rawData.security_score || 5,
+                legal: rawData.legal || rawData.legal_score || 5,
+                access: rawData.access || rawData.access_score || 5,
+                maintenance: rawData.maintenance || rawData.maintenance_score || 5
+            };
+
+            // Prepare the properly structured payload
+            const payload = {
+                fullData: fullData,
+                pillarScores: pillarScores,
+                keepScore: keepScore,
+                birs: birs
+            };
+
+            // Show progress modal
+            showProgress();
+
+            // Start async job with properly structured data
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/audit/analyze`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${API_KEY}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) throw new Error('Failed to start analysis');
+
+                const { jobId } = await response.json();
+                currentJobId = jobId;
+
+                // Start polling for progress
+                pollForProgress();
+
+            } catch (error) {
+                console.error('Error starting analysis:', error);
+                hideProgress();
+                alert('Failed to start analysis');
+            }
+        }
+
+        // Poll for job progress
+        async function pollForProgress() {
+            pollInterval = setInterval(async () => {
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/jobs?jobId=${currentJobId}`, {
+                        headers: { 'Authorization': `Bearer ${API_KEY}` }
+                    });
+                    if (!response.ok) throw new Error('Failed to get status');
+
+                    const status = await response.json();
+
+                    // Update progress display
+                    updateProgress(status.progress || 0, status.sectionsCompleted || 0, status.sectionsTotal || 8);
+
+                    if (status.status === 'completed') {
+                        clearInterval(pollInterval);
+                        await handleCompletedJob();
+                    } else if (status.status === 'failed') {
+                        clearInterval(pollInterval);
+                        hideProgress();
+                        alert('Analysis failed');
+                    }
+                } catch (error) {
+                    console.error('Poll error:', error);
+                }
+            }, 1000);
+        }
+
+        // Handle completed job
+        async function handleCompletedJob() {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/jobs?jobId=${currentJobId}`, {
+                    headers: { 'Authorization': `Bearer ${API_KEY}` }
+                });
+                if (!response.ok) throw new Error('Failed to get results');
+
+                const results = await response.json();
+
+                // Generate PDF
+                generatePDF(results);
+
+                // Update Airtable to mark as generated
+                // (You would implement this)
+
+                hideProgress();
+                await fetchSubmissions(); // Refresh list
+
+            } catch (error) {
+                console.error('Error getting results:', error);
+                hideProgress();
+                alert('Failed to get results');
+            }
+        }
+
+        // Generate comprehensive PDF report
+        function generatePDF(report) {
+            try {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                const client = report.client || 'Bitcoin Holder';
+                const date = new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                });
+
+                // Helper function for formatting currency
+                const formatCurrency = (num) => {
+                    return Math.round(num).toLocaleString();
+                };
+
+                // Helper function for multi-line text
+                const addMultilineText = (text, x, y, maxWidth) => {
+                    const lines = doc.splitTextToSize(text, maxWidth);
+                    doc.text(lines, x, y);
+                    return y + (lines.length * 5);
+                };
+
+                let pageNum = 1;
+
+                // ============ COVER PAGE ============
+                doc.setFontSize(10);
+                doc.setTextColor(128, 128, 128);
+                doc.text('CONFIDENTIAL', 105, 20, { align: 'center' });
+
+                doc.setFontSize(32);
+                doc.setTextColor(0, 0, 0);
+                doc.text('BITCOIN INHERITANCE', 105, 60, { align: 'center' });
+                doc.text('SECURITY AUDIT', 105, 75, { align: 'center' });
+
+                doc.setFontSize(14);
+                doc.setTextColor(100, 100, 100);
+                doc.text('KEEP Framework Assessment', 105, 90, { align: 'center' });
+
+                // Client info box
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(40, 110, 130, 40);
+
+                doc.setFontSize(12);
+                doc.setTextColor(0, 0, 0);
+                doc.text('Prepared For:', 50, 125);
+                doc.setFont(undefined, 'bold');
+                doc.text(client, 50, 135);
+                doc.setFont(undefined, 'normal');
+                doc.text(date, 50, 145);
+
+                // KEEP Score highlight
+                doc.setFillColor(220, 53, 69);
+                doc.rect(60, 170, 90, 30, 'F');
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(24);
+                doc.text(`KEEP SCORE: ${report.current_state.keep_score}/100`, 105, 190, { align: 'center' });
+
+                // Risk amount
+                doc.setTextColor(0, 0, 0);
+                doc.setFontSize(14);
+                doc.text(`Bitcoin at Risk: $${formatCurrency(report.current_state.birs)}`, 105, 220, { align: 'center' });
+
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text(`Report ID: ${currentJobId || 'N/A'}`, 105, 280, { align: 'center' });
+                doc.text(`Generated: ${new Date().toISOString()}`, 105, 285, { align: 'center' });
+
+                // ============ EXECUTIVE SUMMARY PAGE ============
+                doc.addPage();
+                pageNum++;
+                let y = 30;
+
+                doc.setFontSize(20);
+                doc.setTextColor(0, 0, 0);
+                doc.text('EXECUTIVE SUMMARY', 20, y);
+                y += 15;
+
+                // Key metrics box
+                doc.setFillColor(245, 245, 245);
+                doc.rect(20, y, 170, 45, 'F');
+
+                doc.setFontSize(11);
+                doc.setTextColor(0, 0, 0);
+                y += 10;
+
+                const btcValue = report.current_state.holdings || report.current_state.btc_value || 0;
+                const metrics = [
+                    ['Portfolio Value:', `$${formatCurrency(btcValue)}`],
+                    ['KEEP Score:', `${report.current_state.keep_score}/100`],
+                    ['Risk Level:', report.current_state.tier || 'Critical'],
+                    ['Bitcoin at Risk (BIRS):', `$${formatCurrency(report.current_state.birs)}`],
+                    ['Assessment Date:', date]
+                ];
+
+                metrics.forEach(([label, value]) => {
+                    doc.text(label, 30, y);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(value, 120, y);
+                    doc.setFont(undefined, 'normal');
+                    y += 8;
+                });
+
+                y += 15;
+
+                // Executive summary text
+                if (report.executive && report.executive.executive_summary) {
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Assessment Overview', 20, y);
+                    doc.setFont(undefined, 'normal');
+                    y += 8;
+
+                    doc.setFontSize(10);
+                    y = addMultilineText(report.executive.executive_summary, 20, y, 170);
+                    y += 10;
+                }
+
+                // Primary concern
+                if (report.executive && report.executive.primary_concern) {
+                    doc.setFontSize(12);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(220, 53, 69);
+                    doc.text('PRIMARY CONCERN', 20, y);
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont(undefined, 'normal');
+                    y += 8;
+
+                    doc.setFontSize(10);
+                    y = addMultilineText(report.executive.primary_concern, 20, y, 170);
+                }
+
+                // ============ KEEP FRAMEWORK ANALYSIS ============
+                doc.addPage();
+                pageNum++;
+                y = 30;
+
+                doc.setFontSize(20);
+                doc.text('KEEP FRAMEWORK ANALYSIS', 20, y);
+                y += 15;
+
+                doc.setFontSize(10);
+                doc.setTextColor(100, 100, 100);
+                y = addMultilineText(
+                    'The KEEP Framework evaluates Bitcoin inheritance security across four critical pillars: Key Security, Estate Legal, Emergency Access, and Perpetual Maintenance.',
+                    20, y, 170
+                );
+                y += 15;
+
+                // Pillar scores - each gets its own page with structured layout
+                const pillars = [
+                    { name: 'KEY SECURITY', data: report.security, color: [255, 99, 132] },
+                    { name: 'ESTATE LEGAL', data: report.legal, color: [54, 162, 235] },
+                    { name: 'EMERGENCY ACCESS', data: report.access, color: [255, 206, 86] },
+                    { name: 'PERPETUAL MAINTENANCE', data: report.maintenance, color: [75, 192, 192] }
+                ];
+
+                pillars.forEach((pillar, index) => {
+                    // Each pillar gets its own page
+                    doc.addPage();
+                    pageNum++;
+                    y = 30;
+
+                    // Pillar header with color band
+                    doc.setFillColor(...pillar.color);
+                    doc.rect(0, 0, 210, 15, 'F');
+                    doc.setTextColor(255, 255, 255);
+                    doc.setFontSize(14);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(`${pillar.name}`, 20, 10);
+
+                    // Score card section
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFillColor(245, 245, 245);
+                    doc.rect(20, y, 170, 35, 'F');
+
+                    y += 8;
+                    doc.setFontSize(11);
+                    doc.setFont(undefined, 'bold');
+                    doc.text('KEEP Score:', 25, y);
+                    doc.setFont(undefined, 'normal');
+                    const score = pillar.data?.score || 0;
+                    doc.text(`${score.toFixed(1)} / 10`, 70, y);
+
+                    // Risk level indicator
+                    y += 8;
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Risk Level:', 25, y);
+                    doc.setFont(undefined, 'normal');
+                    const riskLevel = score < 3 ? 'Critical' : score < 5 ? 'High' : score < 7 ? 'Moderate' : 'Low';
+                    const riskColor = score < 3 ? [220, 53, 69] : score < 5 ? [255, 193, 7] : score < 7 ? [255, 193, 7] : [40, 167, 69];
+                    doc.setTextColor(...riskColor);
+                    doc.text(`● ${riskLevel}`, 70, y);
+                    doc.setTextColor(0, 0, 0);
+
+                    // Visual progress bar
+                    y += 8;
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Progress:', 25, y);
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(70, y - 4, 100, 6);
+                    doc.setFillColor(...pillar.color);
+                    doc.rect(70, y - 4, score * 10, 6, 'F');
+
+                    y += 20;
+
+                    // Critical Risk Points - Complete Findings (no truncation)
+                    if (pillar.data?.gaps && pillar.data.gaps.length > 0) {
+                        doc.setFontSize(12);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Critical Risk Points Identified', 20, y);
+                        y += 10;
+
+                        doc.setFont(undefined, 'normal');
+                        doc.setFontSize(10);
+
+                        // Display all gaps with complete text
+                        pillar.data.gaps.forEach((gap, idx) => {
+                            // Check if we need a new page
+                            if (y > 240) {
+                                doc.addPage();
+                                pageNum++;
+                                y = 30;
+
+                                // Re-add header for continuation
+                                doc.setFontSize(12);
+                                doc.setFont(undefined, 'bold');
+                                doc.text(`${pillar.name} - Risk Points (Continued)`, 20, y);
+                                y += 10;
+                                doc.setFont(undefined, 'normal');
+                                doc.setFontSize(10);
+                            }
+
+                            // Number and complete text with multi-line support
+                            doc.setFont(undefined, 'bold');
+                            doc.text(`${idx + 1}.`, 25, y);
+                            doc.setFont(undefined, 'normal');
+
+                            // Split long text into multiple lines
+                            const gapLines = doc.splitTextToSize(gap, 155);
+                            gapLines.forEach((line, lineIdx) => {
+                                doc.text(line, 35, y + (lineIdx * 5));
+                            });
+                            y += (gapLines.length * 5) + 7;
+                        });
+                    }
+
+                    y += 10;
+
+                    // Analyst Comment Box
+                    if (pillar.data?.analysis) {
+                        doc.setFontSize(12);
+                        doc.setFont(undefined, 'bold');
+                        doc.text('Analyst Comment', 20, y);
+                        y += 8;
+
+                        doc.setFillColor(255, 253, 235);
+                        doc.setDrawColor(255, 193, 7);
+                        doc.setLineWidth(0.5);
+                        doc.rect(20, y, 170, 40, 'FD');
+                        doc.setLineWidth(0.2);
+
+                        y += 6;
+                        doc.setFontSize(10);
+                        doc.setFont(undefined, 'normal');
+                        const analysisLines = doc.splitTextToSize(pillar.data.analysis, 160);
+                        // Render each line individually to prevent overlap
+                        analysisLines.slice(0, 6).forEach((line, idx) => {
+                            doc.text(line, 25, y + (idx * 5));
+                        });
+                        y += (Math.min(analysisLines.length, 6) * 5) + 10;
+                    }
+
+
+                    // Footer
+                    doc.setFontSize(8);
+                    doc.setTextColor(150, 150, 150);
+                    doc.text('KEEP Framework | Bitcoin Inheritance Audit | Confidential', 105, 285, { align: 'center' });
+                    doc.text(`Page ${pageNum}`, 105, 290, { align: 'center' });
+                });
+
+                // ============ ACTION PLAN ============
+                doc.addPage();
+                pageNum++;
+                y = 30;
+
+                doc.setFontSize(20);
+                doc.text('PRIORITY ACTION PLAN', 20, y);
+                y += 15;
+
+                if (report.actions) {
+                    const actions = report.actions.priority_actions ||
+                                   (report.actions.action ? [report.actions] : []);
+
+                    if (actions.length > 0) {
+                        actions.forEach((action, index) => {
+                            if (y > 240) {
+                                doc.addPage();
+                                pageNum++;
+                                y = 30;
+                            }
+
+                            // Priority badge
+                            const priority = action.priority || 'Medium';
+                            const priorityColors = {
+                                'High': [220, 53, 69],
+                                'Medium': [255, 193, 7],
+                                'Low': [40, 167, 69]
+                            };
+                            const color = priorityColors[priority] || [128, 128, 128];
+
+                            doc.setFillColor(...color);
+                            doc.rect(20, y, 40, 8, 'F');
+                            doc.setTextColor(255, 255, 255);
+                            doc.setFontSize(10);
+                            doc.setFont(undefined, 'bold');
+                            doc.text(`Priority ${index + 1}`, 40, y + 6, { align: 'center' });
+
+                            y += 12;
+
+                            // Action
+                            doc.setTextColor(0, 0, 0);
+                            doc.setFontSize(11);
+                            doc.setFont(undefined, 'bold');
+                            y = addMultilineText(action.action, 20, y, 170);
+                            y += 5;
+
+                            // Rationale
+                            doc.setFont(undefined, 'normal');
+                            doc.setFontSize(10);
+                            doc.text('Rationale: ', 20, y);
+                            y = addMultilineText(action.rationale, 50, y, 140);
+                            y += 3;
+
+                            // Timeline
+                            if (action.timeline) {
+                                doc.setFont(undefined, 'bold');
+                                doc.text('Timeline: ', 20, y);
+                                doc.setFont(undefined, 'normal');
+                                doc.text(action.timeline, 50, y);
+                                y += 5;
+                            }
+
+                            y += 10;
+                        });
+                    }
+                }
+
+                // ============ APPENDIX ============
+                doc.addPage();
+                pageNum++;
+                y = 30;
+
+                doc.setFontSize(20);
+                doc.text('APPENDIX', 20, y);
+                y += 15;
+
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Assessment Methodology', 20, y);
+                doc.setFont(undefined, 'normal');
+                y += 8;
+
+                doc.setFontSize(10);
+                y = addMultilineText(
+                    'This audit was conducted using the KEEP Framework, a comprehensive methodology for evaluating Bitcoin inheritance security. The assessment analyzes current practices, identifies vulnerabilities, and provides actionable recommendations to protect digital assets for beneficiaries.',
+                    20, y, 170
+                );
+                y += 10;
+
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Risk Calculation', 20, y);
+                doc.setFont(undefined, 'normal');
+                y += 8;
+
+                doc.setFontSize(10);
+                const portfolioValue = report.current_state.holdings || report.current_state.btc_value || 0;
+                y = addMultilineText(
+                    `Bitcoin Inheritance Risk Score (BIRS) represents the dollar value at risk based on your current security posture. With a KEEP Score of ${report.current_state.keep_score}/100 and holdings of $${formatCurrency(portfolioValue)}, approximately $${formatCurrency(report.current_state.birs)} is at risk of being lost to your beneficiaries.`,
+                    20, y, 170
+                );
+                y += 10;
+
+                doc.setFontSize(12);
+                doc.setFont(undefined, 'bold');
+                doc.text('Next Steps', 20, y);
+                doc.setFont(undefined, 'normal');
+                y += 8;
+
+                doc.setFontSize(10);
+                const nextSteps = [
+                    '1. Review and prioritize the action items identified in this report',
+                    '2. Implement high-priority security improvements immediately',
+                    '3. Schedule a follow-up assessment in 6-12 months',
+                    '4. Consider professional Bitcoin inheritance planning services',
+                    '5. Regularly test your inheritance procedures with trusted parties'
+                ];
+
+                nextSteps.forEach(step => {
+                    if (y > 270) {
+                        doc.addPage();
+                        pageNum++;
+                        y = 30;
+                    }
+                    y = addMultilineText(step, 20, y, 170);
+                    y += 5;
+                });
+
+                // Footer on last page
+                doc.setFontSize(8);
+                doc.setTextColor(150, 150, 150);
+                doc.text('This report contains confidential information. Handle with appropriate security measures.', 105, 285, { align: 'center' });
+                doc.text(`Page ${pageNum}`, 105, 290, { align: 'center' });
+
+                // Save the PDF
+                doc.save(`Bitcoin-Inheritance-Audit-${client.replace(/\s/g, '-')}-${new Date().toISOString().split('T')[0]}.pdf`);
+
+            } catch (error) {
+                console.error('PDF generation error:', error);
+                alert('Error generating PDF: ' + error.message + '\nPlease check the browser console for details.');
+            }
+        }
+
+        // Progress modal functions
+        function showProgress() {
+            document.getElementById('progressModal').classList.add('active');
+        }
+
+        function hideProgress() {
+            document.getElementById('progressModal').classList.remove('active');
+            clearInterval(pollInterval);
+        }
+
+        function updateProgress(percent, completed, total) {
+            document.getElementById('progressFill').style.width = `${percent}%`;
+            document.getElementById('progressText').textContent = `PROCESSING... ${percent}%`;
+            document.getElementById('sectionsStatus').textContent = `${completed}/${total}`;
+        }
+
+        // Helper functions
+        function getTierClass(tier) {
+            if (!tier) return '';
+            const normalized = tier.toLowerCase();
+            if (normalized.includes('critical')) return 'critical';
+            if (normalized.includes('major')) return 'major';
+            if (normalized.includes('moderate')) return 'moderate';
+            if (normalized.includes('minor')) return 'minor';
+            if (normalized.includes('secure')) return 'secure';
+            return '';
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '--';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function updateRefreshTime() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('en-US', { hour12: false });
+            document.getElementById('lastRefresh').textContent = `LAST REFRESH: ${timeStr}`;
+        }
+
+        function showError(message) {
+            const tbody = document.getElementById('submissionsBody');
+            tbody.innerHTML = `<tr><td colspan="6" class="error-message">${message.toUpperCase()}</td></tr>`;
+        }
+
+        // Auto refresh
+        function startAutoRefresh() {
+            refreshInterval = setInterval(() => {
+                fetchSubmissions();
+            }, 30000); // Every 30 seconds
+        }
+
+        // Keyboard shortcuts
+        function setupKeyboardShortcuts() {
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'r' || e.key === 'R') {
+                    fetchSubmissions();
+                }
+            });
+        }
+
+        // Start the app
+        init();
+    </script>
+</body>
+</html>
