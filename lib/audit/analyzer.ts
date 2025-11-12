@@ -117,6 +117,12 @@ export async function analyzeAudit(formData: any): Promise<AuditAnalysis> {
 
   } catch (error) {
     console.error('AI analysis error:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      hasApiKey: !!process.env.ANTHROPIC_API_KEY,
+      apiKeyLength: process.env.ANTHROPIC_API_KEY?.length || 0
+    });
     // Return fallback analysis if AI fails
     return generateFallbackAnalysis(formData, scores);
   }
