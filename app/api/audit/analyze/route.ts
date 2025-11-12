@@ -22,6 +22,8 @@ export async function POST(request: NextRequest) {
     // Generate job ID
     const jobId = `job-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 
+    console.log(`[Job ${jobId}] Creating initial job status...`);
+
     // Store initial job status
     await saveJob(jobId, {
       status: 'processing',
@@ -30,8 +32,12 @@ export async function POST(request: NextRequest) {
       error: null
     });
 
-    // Process async (don't await)
-    processAnalysis(jobId, formData);
+    console.log(`[Job ${jobId}] Job created in Airtable, starting background analysis...`);
+
+    // Process async (don't await) - wrap to catch unhandled rejections
+    processAnalysis(jobId, formData).catch(err => {
+      console.error(`[Job ${jobId}] Unhandled error in background process:`, err);
+    });
 
     // Return job ID immediately
     return NextResponse.json({
@@ -93,12 +99,23 @@ export async function GET(request: NextRequest) {
 
 // Async processing function
 async function processAnalysis(jobId: string, formData: any) {
+  const startTime = Date.now();
+  console.log(`[Job ${jobId}] Background processing started`);
+
   try {
+    console.log(`[Job ${jobId}] Calling analyzeAudit...`);
+
     // Perform the analysis
     const analysis = await analyzeAudit(formData);
 
+    const duration = ((Date.now() - startTime) / 1000).toFixed(2);
+    console.log(`[Job ${jobId}] Analysis completed in ${duration}s`);
+
     // Get existing job data
+    console.log(`[Job ${jobId}] Retrieving existing job data from Airtable...`);
     const existingJob = await getJob(jobId);
+
+    console.log(`[Job ${jobId}] Updating job status to completed...`);
 
     // Update job status
     await saveJob(jobId, {
@@ -109,10 +126,18 @@ async function processAnalysis(jobId: string, formData: any) {
       error: null
     });
 
+    console.log(`[Job ${jobId}] ✓ Job completed successfully`);
+
     // Clean up old jobs (keep last 100)
     await cleanupOldJobs(100);
 
   } catch (error) {
+    console.error(`[Job ${jobId}] ✗ Processing failed:`, error);
+    console.error(`[Job ${jobId}] Error details:`, {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined
+    });
+
     // Get existing job data
     const existingJob = await getJob(jobId);
 
@@ -124,5 +149,7 @@ async function processAnalysis(jobId: string, formData: any) {
       data: null,
       error: error instanceof Error ? error.message : 'Analysis failed'
     });
+
+    console.log(`[Job ${jobId}] Job marked as failed in Airtable`);
   }
 }

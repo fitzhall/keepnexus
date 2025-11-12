@@ -73,6 +73,8 @@ export async function saveJob(jobId: string, jobData: any): Promise<void> {
       throw new Error('Airtable not configured');
     }
 
+    console.log(`[saveJob] Saving job ${jobId}, status: ${jobData.status}`);
+
     // Check if record already exists
     const existingRecord = await findRecordByJobId(jobId);
 
@@ -87,6 +89,7 @@ export async function saveJob(jobId: string, jobData: any): Promise<void> {
     };
 
     if (existingRecord) {
+      console.log(`[saveJob] Updating existing record for ${jobId}`);
       // Update existing record
       const response = await fetch(`${getBaseUrl()}/${existingRecord.id}`, {
         method: 'PATCH',
@@ -95,9 +98,13 @@ export async function saveJob(jobId: string, jobData: any): Promise<void> {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[saveJob] Update failed: ${response.status} - ${errorText}`);
         throw new Error(`Airtable update error: ${response.status}`);
       }
+      console.log(`[saveJob] Successfully updated ${jobId}`);
     } else {
+      console.log(`[saveJob] Creating new record for ${jobId}`);
       // Create new record
       const response = await fetch(getBaseUrl(), {
         method: 'POST',
@@ -106,11 +113,14 @@ export async function saveJob(jobId: string, jobData: any): Promise<void> {
       });
 
       if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[saveJob] Create failed: ${response.status} - ${errorText}`);
         throw new Error(`Airtable create error: ${response.status}`);
       }
+      console.log(`[saveJob] Successfully created ${jobId}`);
     }
   } catch (error) {
-    console.error('Error saving job:', error);
+    console.error(`[saveJob] Error saving job ${jobId}:`, error);
     throw error;
   }
 }
