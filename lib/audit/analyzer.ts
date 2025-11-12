@@ -10,8 +10,12 @@ interface AuditAnalysis {
     holdings: number;
     btc_value: number;
     birs: number;
-    risk_level: string;
+    tier: string;
     critical_gaps: string[];
+  };
+  executive: {
+    executive_summary: string;
+    primary_concern: string;
   };
   security: {
     score: number;
@@ -38,7 +42,6 @@ interface AuditAnalysis {
     short_term: string[];
     long_term: string[];
   };
-  executive_summary: string;
 }
 
 /**
@@ -69,14 +72,19 @@ export async function analyzeAudit(formData: any): Promise<AuditAnalysis> {
     const aiAnalysis = parseAIResponse(response.content[0]);
 
     // Combine with calculated scores
+    const criticalGaps = identifyCriticalGaps(formData, scores);
     const fullAnalysis: AuditAnalysis = {
       current_state: {
         keep_score: scores.keepScore,
         holdings: formData.btc_value_usd || 100000,
         btc_value: formData.btc_value_usd || 100000,
         birs: calculateBIRS(scores.keepScore, formData.btc_value_usd || 100000),
-        risk_level: getRiskLevel(scores.keepScore),
-        critical_gaps: identifyCriticalGaps(formData, scores)
+        tier: getTier(scores.keepScore),
+        critical_gaps: criticalGaps
+      },
+      executive: {
+        executive_summary: aiAnalysis.executive_summary || generateExecutiveSummary(formData, scores),
+        primary_concern: criticalGaps.length > 0 ? criticalGaps[0] : 'Review complete inheritance framework'
       },
       security: {
         score: scores.security,
@@ -102,8 +110,7 @@ export async function analyzeAudit(formData: any): Promise<AuditAnalysis> {
         immediate: aiAnalysis.recommendations?.immediate || generateImmediateRecs(formData, scores),
         short_term: aiAnalysis.recommendations?.short_term || generateShortTermRecs(formData, scores),
         long_term: aiAnalysis.recommendations?.long_term || generateLongTermRecs(formData, scores)
-      },
-      executive_summary: aiAnalysis.executive_summary || generateExecutiveSummary(formData, scores)
+      }
     };
 
     return fullAnalysis;
@@ -232,13 +239,14 @@ function calculateBIRS(keepScore: number, btcValue: number): number {
 }
 
 /**
- * Get risk level based on KEEP score
+ * Get tier based on KEEP score (matches original implementation)
  */
-function getRiskLevel(keepScore: number): string {
-  if (keepScore >= 80) return 'LOW';
-  if (keepScore >= 60) return 'MODERATE';
-  if (keepScore >= 40) return 'HIGH';
-  return 'CRITICAL';
+function getTier(keepScore: number): string {
+  if (keepScore >= 86) return 'Institutional Grade';
+  if (keepScore >= 71) return 'Strong Foundation';
+  if (keepScore >= 56) return 'Basic Protection';
+  if (keepScore >= 41) return 'Vulnerable';
+  return 'Critical Risk';
 }
 
 /**
@@ -385,9 +393,9 @@ function generateLongTermRecs(formData: any, scores: any): string[] {
 }
 
 function generateExecutiveSummary(formData: any, scores: any): string {
-  return `Bitcoin inheritance audit reveals a KEEP score of ${scores.keepScore}/100, indicating ${
-    getRiskLevel(scores.keepScore).toLowerCase()
-  } risk of asset loss. Holdings of $${formData.btc_value_usd || 100000} face expected loss exposure of $${
+  return `Bitcoin inheritance audit reveals a KEEP score of ${scores.keepScore}/100 (${
+    getTier(scores.keepScore)
+  }). Holdings of $${formData.btc_value_usd || 100000} face expected loss exposure of $${
     calculateBIRS(scores.keepScore, formData.btc_value_usd || 100000)
   }. Primary concerns include ${
     identifyCriticalGaps(formData, scores).slice(0, 2).join(' and ')
@@ -398,14 +406,19 @@ function generateExecutiveSummary(formData: any, scores: any): string {
  * Generate fallback analysis if AI fails
  */
 function generateFallbackAnalysis(formData: any, scores: any): AuditAnalysis {
+  const criticalGaps = identifyCriticalGaps(formData, scores);
   return {
     current_state: {
       keep_score: scores.keepScore,
       holdings: formData.btc_value_usd || 100000,
       btc_value: formData.btc_value_usd || 100000,
       birs: calculateBIRS(scores.keepScore, formData.btc_value_usd || 100000),
-      risk_level: getRiskLevel(scores.keepScore),
-      critical_gaps: identifyCriticalGaps(formData, scores)
+      tier: getTier(scores.keepScore),
+      critical_gaps: criticalGaps
+    },
+    executive: {
+      executive_summary: generateExecutiveSummary(formData, scores),
+      primary_concern: criticalGaps.length > 0 ? criticalGaps[0] : 'Review complete inheritance framework'
     },
     security: {
       score: scores.security,
@@ -431,7 +444,6 @@ function generateFallbackAnalysis(formData: any, scores: any): AuditAnalysis {
       immediate: generateImmediateRecs(formData, scores),
       short_term: generateShortTermRecs(formData, scores),
       long_term: generateLongTermRecs(formData, scores)
-    },
-    executive_summary: generateExecutiveSummary(formData, scores)
+    }
   };
 }
