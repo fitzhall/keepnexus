@@ -596,7 +596,7 @@
                 const results = await response.json();
 
                 // Generate PDF
-                generatePDF(results);
+                generatePDF(results.data);
 
                 // Update Airtable to mark as generated
                 // (You would implement this)
