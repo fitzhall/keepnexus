@@ -294,7 +294,7 @@ export async function generatePDF(report: AuditReport, formData: any): Promise<B
 
         // Split long text into multiple lines
         const gapLines = doc.splitTextToSize(gap, 155);
-        gapLines.forEach((line, lineIdx) => {
+        gapLines.forEach((line: string, lineIdx: number) => {
           doc.text(line, 35, y + (lineIdx * 5));
         });
         y += (gapLines.length * 5) + 7;
@@ -321,7 +321,7 @@ export async function generatePDF(report: AuditReport, formData: any): Promise<B
       doc.setFont('helvetica', 'normal');
       const analysisLines = doc.splitTextToSize(pillar.data.analysis, 160);
       // Render each line individually to prevent overlap
-      analysisLines.slice(0, 6).forEach((line, idx) => {
+      analysisLines.slice(0, 6).forEach((line: string, idx: number) => {
         doc.text(line, 25, y + (idx * 5));
       });
       y += (Math.min(analysisLines.length, 6) * 5) + 10;
