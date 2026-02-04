@@ -8,6 +8,10 @@ interface AuditReport {
     btc_value?: number;
     birs: number;
     tier?: string;
+    tier_description?: string;
+    tier_range?: string;
+    success_rate?: number;
+    birs_percentage?: number;
   };
   executive?: {
     executive_summary?: string;
@@ -15,21 +19,29 @@ interface AuditReport {
   };
   security?: {
     score?: number;
+    tier?: string;
+    risk_level?: string;
     gaps?: string[];
     analysis?: string;
   };
   legal?: {
     score?: number;
+    tier?: string;
+    risk_level?: string;
     gaps?: string[];
     analysis?: string;
   };
   access?: {
     score?: number;
+    tier?: string;
+    risk_level?: string;
     gaps?: string[];
     analysis?: string;
   };
   maintenance?: {
     score?: number;
+    tier?: string;
+    risk_level?: string;
     gaps?: string[];
     analysis?: string;
   };
@@ -39,6 +51,8 @@ interface AuditReport {
       action: string;
       rationale: string;
       timeline?: string;
+      steps?: string;
+      impact?: string;
     }>;
     action?: string;
   };
@@ -126,18 +140,22 @@ export async function generatePDF(report: AuditReport, formData: any): Promise<B
 
   // Key metrics box
   doc.setFillColor(245, 245, 245);
-  doc.rect(20, y, 170, 45, 'F');
+  doc.rect(20, y, 170, 60, 'F');
 
   doc.setFontSize(11);
   doc.setTextColor(0, 0, 0);
   y += 10;
 
   const btcValue = report.current_state.holdings || report.current_state.btc_value || 0;
+  const successRate = report.current_state.success_rate !== undefined ? `${report.current_state.success_rate}%` : 'N/A';
+  const birsPercentage = report.current_state.birs_percentage !== undefined ? `${report.current_state.birs_percentage}%` : 'N/A';
+
   const metrics: Array<[string, string]> = [
     ['Portfolio Value:', `$${formatCurrency(btcValue)}`],
     ['KEEP Score:', `${report.current_state.keep_score}/100`],
     ['Risk Level:', report.current_state.tier || 'Critical'],
-    ['Bitcoin at Risk (BIRS):', `$${formatCurrency(report.current_state.birs)}`],
+    ['Inheritance Success Rate:', successRate],
+    ['Bitcoin at Risk (BIRS):', `$${formatCurrency(report.current_state.birs)} (${birsPercentage})`],
     ['Assessment Date:', date]
   ];
 
@@ -195,10 +213,106 @@ export async function generatePDF(report: AuditReport, formData: any): Promise<B
   );
   y += 15;
 
+  // ============ RISK TIER CLASSIFICATION MATRIX ============
+  doc.addPage();
+  pageNum++;
+  y = 30;
+
+  doc.setFontSize(18);
+  doc.setTextColor(0, 0, 0);
+  doc.text('RISK TIER CLASSIFICATION', 20, y);
+  y += 15;
+
+  doc.setFontSize(10);
+  doc.setTextColor(100, 100, 100);
+  y = addMultilineText(
+    'The KEEP Score determines your inheritance security tier. Each tier represents a different level of risk and expected success rate.',
+    20, y, 170
+  );
+  y += 15;
+
+  // Draw tier classification table
+  const tiers: Array<{ name: string; range: string; success: string; birs: string; color: [number, number, number] }> = [
+    { name: 'Institutional Grade', range: '86-100', success: '95%+', birs: '<20%', color: [40, 167, 69] },
+    { name: 'Strong Foundation', range: '71-85', success: '70-94%', birs: '20-40%', color: [23, 162, 184] },
+    { name: 'Basic Protection', range: '56-70', success: '40-69%', birs: '40-60%', color: [255, 193, 7] },
+    { name: 'Vulnerable', range: '41-55', success: '10-39%', birs: '60-80%', color: [253, 126, 20] },
+    { name: 'Critical Risk', range: '0-40', success: '<10%', birs: '>80%', color: [220, 53, 69] }
+  ];
+
+  // Table header
+  doc.setFillColor(240, 240, 240);
+  doc.rect(20, y, 170, 10, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(0, 0, 0);
+  doc.text('Tier', 25, y + 7);
+  doc.text('Score Range', 70, y + 7);
+  doc.text('Success Rate', 110, y + 7);
+  doc.text('BIRS %', 160, y + 7);
+  y += 10;
+
+  // Table rows
+  doc.setFont('helvetica', 'normal');
+  tiers.forEach((tier, idx) => {
+    // Color indicator
+    doc.setFillColor(...tier.color);
+    doc.circle(22, y + 4, 2, 'F');
+
+    // Tier name
+    doc.setTextColor(0, 0, 0);
+    doc.text(tier.name, 27, y + 6);
+
+    // Score range
+    doc.text(tier.range, 75, y + 6);
+
+    // Success rate
+    doc.text(tier.success, 115, y + 6);
+
+    // BIRS %
+    doc.text(tier.birs, 163, y + 6);
+
+    y += 8;
+
+    // Separator line
+    if (idx < tiers.length - 1) {
+      doc.setDrawColor(220, 220, 220);
+      doc.line(20, y, 190, y);
+      y += 2;
+    }
+  });
+
+  y += 15;
+
+  // Current tier highlight
+  const currentTier = report.current_state.tier || 'Critical Risk';
+  const currentTierData = tiers.find(t => t.name === currentTier) || tiers[4];
+
+  doc.setFontSize(12);
+  doc.setFont('helvetica', 'bold');
+  doc.text('YOUR CURRENT TIER:', 20, y);
+  y += 10;
+
+  // Tier badge
+  doc.setFillColor(...currentTierData.color);
+  doc.roundedRect(20, y, 170, 20, 3, 3, 'F');
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(16);
+  doc.text(currentTier, 105, y + 13, { align: 'center' });
+  y += 25;
+
+  // Tier description
+  doc.setTextColor(0, 0, 0);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  if (report.current_state.tier_description) {
+    y = addMultilineText(report.current_state.tier_description, 20, y, 170);
+  }
+
   // Pillar scores - each gets its own page with structured layout
   const pillars: Array<{
     name: string;
-    data?: { score?: number; gaps?: string[]; analysis?: string };
+    data?: { score?: number; tier?: string; risk_level?: string; gaps?: string[]; analysis?: string };
     color: [number, number, number];
   }> = [
     { name: 'KEY SECURITY', data: report.security, color: [255, 99, 132] },
@@ -224,7 +338,7 @@ export async function generatePDF(report: AuditReport, formData: any): Promise<B
     // Score card section
     doc.setTextColor(0, 0, 0);
     doc.setFillColor(245, 245, 245);
-    doc.rect(20, y, 170, 35, 'F');
+    doc.rect(20, y, 170, 45, 'F');
 
     y += 8;
     doc.setFontSize(11);
@@ -234,16 +348,24 @@ export async function generatePDF(report: AuditReport, formData: any): Promise<B
     const score = pillar.data?.score || 0;
     doc.text(`${score.toFixed(1)} / 10`, 70, y);
 
+    // Tier indicator (new)
+    y += 8;
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tier:', 25, y);
+    doc.setFont('helvetica', 'normal');
+    const pillarTier = pillar.data?.tier || (score >= 8.6 ? 'Secure' : score >= 7.1 ? 'Attention' : score >= 5.6 ? 'Elevated' : score >= 4.1 ? 'Vulnerable' : 'Critical');
+    doc.text(pillarTier, 70, y);
+
     // Risk level indicator
     y += 8;
     doc.setFont('helvetica', 'bold');
     doc.text('Risk Level:', 25, y);
     doc.setFont('helvetica', 'normal');
-    const riskLevel = score < 3 ? 'Critical' : score < 5 ? 'High' : score < 7 ? 'Moderate' : 'Low';
+    const riskLevel = pillar.data?.risk_level || (score < 3 ? 'Critical Risk' : score < 5 ? 'High Risk' : score < 7 ? 'Moderate Risk' : 'Low Risk');
     const riskColor: [number, number, number] =
-      score < 3 ? [220, 53, 69] :
-      score < 5 ? [255, 193, 7] :
-      score < 7 ? [255, 193, 7] :
+      riskLevel.includes('Critical') ? [220, 53, 69] :
+      riskLevel.includes('High') ? [253, 126, 20] :
+      riskLevel.includes('Moderate') || riskLevel.includes('Elevated') ? [255, 193, 7] :
       [40, 167, 69];
     doc.setTextColor(...riskColor);
     doc.text(`● ${riskLevel}`, 70, y);
@@ -393,6 +515,34 @@ export async function generatePDF(report: AuditReport, formData: any): Promise<B
           doc.text('Timeline: ', 20, y);
           doc.setFont('helvetica', 'normal');
           doc.text(action.timeline, 50, y);
+          y += 5;
+        }
+
+        // Steps (new field)
+        if (action.steps) {
+          if (y > 240) {
+            doc.addPage();
+            pageNum++;
+            y = 30;
+          }
+          doc.setFont('helvetica', 'bold');
+          doc.text('Steps: ', 20, y);
+          doc.setFont('helvetica', 'normal');
+          y = addMultilineText(action.steps, 50, y, 140);
+          y += 5;
+        }
+
+        // Impact (new field)
+        if (action.impact) {
+          if (y > 240) {
+            doc.addPage();
+            pageNum++;
+            y = 30;
+          }
+          doc.setFont('helvetica', 'bold');
+          doc.text('Impact: ', 20, y);
+          doc.setFont('helvetica', 'normal');
+          y = addMultilineText(action.impact, 50, y, 140);
           y += 5;
         }
 
