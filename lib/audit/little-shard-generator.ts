@@ -13,6 +13,19 @@ interface LittleShard {
   keep_score: number;
   btc_value: number;
   expected_loss: number;
+  risk_classification: {
+    overall_tier: string;
+    tier_range: string;
+    tier_description: string;
+    success_rate: number;
+    birs_percentage: number;
+    pillar_tiers: {
+      security: string;
+      legal: string;
+      access: string;
+      maintenance: string;
+    };
+  };
   pillars: {
     security: PillarSection;
     legal: PillarSection;
@@ -38,6 +51,8 @@ interface LittleShard {
 
 interface PillarSection {
   score: number;
+  tier: string;
+  risk_level: string;
   issues: string[];
   actions: string[];
   impact: number;
@@ -162,6 +177,13 @@ export function generateLittleShard(auditReport: any, formData: any): LittleShar
     notes: formData.tracks_cost_basis ? 'Active tracking in place' : 'Recommend implementing cost basis tracking'
   };
 
+  // Build risk classification
+  const tier = auditReport.current_state?.tier || 'Critical Risk';
+  const tierRange = auditReport.current_state?.tier_range || '0-40';
+  const tierDescription = auditReport.current_state?.tier_description || '<10% inheritance success rate';
+  const successRate = auditReport.current_state?.success_rate || 0;
+  const birsPercentage = auditReport.current_state?.birs_percentage || Math.round((birs / btcValue) * 100);
+
   // Build the complete Little Shard
   const littleShard: LittleShard = {
     version: "1.0.0",
@@ -171,6 +193,20 @@ export function generateLittleShard(auditReport: any, formData: any): LittleShar
     keep_score: keepScore,
     btc_value: btcValue,
     expected_loss: Math.round(birs),
+
+    risk_classification: {
+      overall_tier: tier,
+      tier_range: tierRange,
+      tier_description: tierDescription,
+      success_rate: successRate,
+      birs_percentage: birsPercentage,
+      pillar_tiers: {
+        security: auditReport.security?.tier || 'Critical',
+        legal: auditReport.legal?.tier || 'Critical',
+        access: auditReport.access?.tier || 'Critical',
+        maintenance: auditReport.maintenance?.tier || 'Critical'
+      }
+    },
 
     pillars: pillars,
     wallet_map: walletMap,
@@ -208,6 +244,8 @@ function buildPillarSection(pillarData: any, pillarName: string): PillarSection 
   if (!pillarData) {
     return {
       score: 0,
+      tier: 'Critical',
+      risk_level: 'Critical Risk',
       issues: ["No assessment data available"],
       actions: ["Complete assessment"],
       impact: 10
@@ -215,12 +253,16 @@ function buildPillarSection(pillarData: any, pillarName: string): PillarSection 
   }
 
   const score = pillarData.score || 0;
+  const tier = pillarData.tier || (score >= 8.6 ? 'Secure' : score >= 7.1 ? 'Attention' : score >= 5.6 ? 'Elevated' : score >= 4.1 ? 'Vulnerable' : 'Critical');
+  const riskLevel = pillarData.risk_level || (score >= 8.6 ? 'Low Risk' : score >= 7.1 ? 'Moderate Risk' : score >= 5.6 ? 'Elevated Risk' : score >= 4.1 ? 'High Risk' : 'Critical Risk');
   const issues = pillarData.gaps || [];
   const actions = extractPillarActions(pillarData);
   const impact = calculateImpact(score);
 
   return {
     score: Math.round(score * 10) / 10,
+    tier: tier,
+    risk_level: riskLevel,
     issues: issues.slice(0, 5), // Top 5 issues
     actions: actions.slice(0, 5), // Top 5 actions
     impact: impact

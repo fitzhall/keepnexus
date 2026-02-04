@@ -58,7 +58,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json(job);
+    // Calculate section progress for frontend progress bar
+    const sections = job.sections || {};
+    const totalSections = 8; // executive, security, legal, access, maintenance, patterns, actions, scenarios
+    const completedSections = Object.values(sections).filter((s: any) => s?.status === 'completed').length;
+
+    return NextResponse.json({
+      ...job,
+      sectionsCompleted: completedSections,
+      sectionsTotal: totalSections
+    });
 
   } catch (error) {
     console.error('Job status error:', error);
