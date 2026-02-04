@@ -84,6 +84,11 @@ export class ShareService {
    * Initialize the share service, loading or generating the share master key
    */
   async initialize(): Promise<void> {
+    // Skip initialization during SSR
+    if (typeof window === 'undefined') {
+      return
+    }
+
     const stored = localStorage.getItem(SHARE_MASTER_KEY_STORAGE)
 
     if (stored) {
@@ -204,6 +209,11 @@ export class ShareService {
    * Get all active shares
    */
   getActiveShares(): ActiveShare[] {
+    // Return empty array during SSR
+    if (typeof window === 'undefined') {
+      return []
+    }
+
     const stored = localStorage.getItem(ACTIVE_SHARES_STORAGE)
     if (!stored) return []
 
@@ -227,6 +237,11 @@ export class ShareService {
    * Revoke a share token
    */
   revokeShare(tokenId: string): boolean {
+    // Skip during SSR
+    if (typeof window === 'undefined') {
+      return false
+    }
+
     const shares = this.getActiveShares()
     const share = shares.find(s => s.token_id === tokenId)
 
@@ -242,6 +257,10 @@ export class ShareService {
    * Clear all shares
    */
   clearAllShares(): void {
+    // Skip during SSR
+    if (typeof window === 'undefined') {
+      return
+    }
     localStorage.removeItem(ACTIVE_SHARES_STORAGE)
   }
 
@@ -250,6 +269,11 @@ export class ShareService {
   // ==========================================================================
 
   private addActiveShare(shareToken: ShareToken): void {
+    // Skip during SSR
+    if (typeof window === 'undefined') {
+      return
+    }
+
     const shares = this.getActiveShares()
 
     shares.push({

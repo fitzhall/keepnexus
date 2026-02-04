@@ -4,452 +4,420 @@ const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 });
 
-interface AuditAnalysis {
-  current_state: {
-    keep_score: number;
-    holdings: number;
-    btc_value: number;
-    birs: number;
-    tier: string;
-    critical_gaps: string[];
-  };
-  executive: {
-    executive_summary: string;
-    primary_concern: string;
-  };
-  security: {
-    score: number;
-    gaps: string[];
-    analysis: string;
-  };
-  legal: {
-    score: number;
-    gaps: string[];
-    analysis: string;
-  };
-  access: {
-    score: number;
-    gaps: string[];
-    analysis: string;
-  };
-  maintenance: {
-    score: number;
-    gaps: string[];
-    analysis: string;
-  };
-  recommendations: {
+// ============================================
+// TYPES
+// ============================================
+
+export interface ExecutiveAnalysis {
+  executive_summary: string;
+  primary_concern: string;
+  urgency_factor: string;
+  key_insight: string;
+}
+
+export interface PillarAnalysis {
+  analysis: string;
+  gaps: string[];
+  score: number;
+  weight: string;
+}
+
+export interface PatternsAnalysis {
+  systemic_patterns: string;
+  compound_risks: string;
+  critical_vulnerability: string;
+}
+
+export interface ActionItem {
+  priority: string;
+  action: string;
+  rationale: string;
+  steps: string;
+  timeline: string;
+  impact: string;
+}
+
+export interface ActionPlan {
+  priority_actions: ActionItem[];
+  roadmap: {
     immediate: string[];
-    short_term: string[];
-    long_term: string[];
+    month_1: string[];
+    quarter_1: string[];
   };
+  gap_coverage: string;
 }
 
-/**
- * Analyze audit form data using AI
- */
-export async function analyzeAudit(formData: any): Promise<AuditAnalysis> {
-  // Calculate basic scores from form data
-  const scores = calculateBasicScores(formData);
+export interface RiskScenario {
+  title: string;
+  trigger: string;
+  cascade: string;
+  outcome: string;
+  prevention: string;
+}
 
-  // Build the analysis prompt
-  const prompt = buildAnalysisPrompt(formData, scores);
+export interface ScenariosAnalysis {
+  scenarios: RiskScenario[];
+}
 
-  try {
-    // Call Anthropic API for analysis
-    const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 4000,
-      system: "You are a Bitcoin inheritance expert. Return only valid JSON.",
-      messages: [
-        {
-          role: 'user',
-          content: prompt
-        }
-      ]
-    });
+// ============================================
+// KEEP FRAMEWORK CONTEXT
+// ============================================
 
-    // Parse the AI response
-    const aiAnalysis = parseAIResponse(response.content[0]);
+const KEEP_FRAMEWORK = `KEEP Framework measures Bitcoin inheritance readiness:
+- K(30%): Key Security - Private key storage, distribution, backups
+- E(25%): Estate Legal - Wills, trusts, Bitcoin integration
+- E(25%): Emergency Access - Family's ability to recover
+- P(20%): Perpetual Maintenance - Reviews, updates, succession
 
-    // Combine with calculated scores
-    const criticalGaps = identifyCriticalGaps(formData, scores);
-    const fullAnalysis: AuditAnalysis = {
-      current_state: {
-        keep_score: scores.keepScore,
-        holdings: formData.btc_value_usd || 100000,
-        btc_value: formData.btc_value_usd || 100000,
-        birs: calculateBIRS(scores.keepScore, formData.btc_value_usd || 100000),
-        tier: getTier(scores.keepScore),
-        critical_gaps: criticalGaps
-      },
-      executive: {
-        executive_summary: aiAnalysis.executive_summary || generateExecutiveSummary(formData, scores),
-        primary_concern: criticalGaps.length > 0 ? criticalGaps[0] : 'Review complete inheritance framework'
-      },
-      security: {
-        score: scores.security,
-        gaps: aiAnalysis.security?.gaps || generateSecurityGaps(formData),
-        analysis: aiAnalysis.security?.analysis || generateSecurityAnalysis(formData, scores.security)
-      },
-      legal: {
-        score: scores.legal,
-        gaps: aiAnalysis.legal?.gaps || generateLegalGaps(formData),
-        analysis: aiAnalysis.legal?.analysis || generateLegalAnalysis(formData, scores.legal)
-      },
-      access: {
-        score: scores.access,
-        gaps: aiAnalysis.access?.gaps || generateAccessGaps(formData),
-        analysis: aiAnalysis.access?.analysis || generateAccessAnalysis(formData, scores.access)
-      },
-      maintenance: {
-        score: scores.maintenance,
-        gaps: aiAnalysis.maintenance?.gaps || generateMaintenanceGaps(formData),
-        analysis: aiAnalysis.maintenance?.analysis || generateMaintenanceAnalysis(formData, scores.maintenance)
-      },
-      recommendations: {
-        immediate: aiAnalysis.recommendations?.immediate || generateImmediateRecs(formData, scores),
-        short_term: aiAnalysis.recommendations?.short_term || generateShortTermRecs(formData, scores),
-        long_term: aiAnalysis.recommendations?.long_term || generateLongTermRecs(formData, scores)
-      }
+Scoring Tiers:
+- 86-100: Institutional Grade (minimal risk)
+- 71-85: Strong Foundation (low risk)
+- 51-70: Exposed (moderate risk)
+- 31-50: Major Gaps (high risk)
+- 0-30: Critical Risk (extreme risk)
+
+BIRS (Bitcoin Inheritance Risk Score) = Holdings × (1-Score/100) = potential loss in dollars
+
+The 9 Critical Questions (0-3 scale):
+Q1-3: Security pillar (key distribution, backups, awareness)
+Q4-5: Legal pillar (integration, governance)
+Q6-7: Access pillar (emergency protocols, testing)
+Q8-9: Maintenance pillar (succession, reviews)`;
+
+// ============================================
+// STAGE 1: EXECUTIVE SUMMARY
+// ============================================
+
+export async function analyzeExecutive(
+  fullData: any,
+  keepScore: number,
+  birs: number
+): Promise<ExecutiveAnalysis> {
+  const prompt = `${KEEP_FRAMEWORK}
+
+Analyze ${fullData.full_name}'s Bitcoin inheritance readiness:
+- Holdings: $${fullData.btc_value_usd?.toLocaleString()}
+- KEEP Score: ${keepScore}/100 (${getTier(keepScore)})
+- Risk (BIRS): $${Math.round(birs).toLocaleString()}
+- Setup: ${fullData.primary_wallet_type} on ${fullData.primary_custody_platform}
+- Family: ${fullData.family_status}, Age: ${fullData.age_bracket}
+
+Provide executive analysis in JSON:
+{
+  "executive_summary": "3-4 sentences capturing overall readiness and critical issues",
+  "primary_concern": "Single most important issue to address",
+  "urgency_factor": "Why immediate action is needed",
+  "key_insight": "Most important pattern or observation"
+}`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 800,
+    system: "You are a Bitcoin inheritance expert. Return only valid JSON.",
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return parseJSON(extractTextFromResponse(response));
+}
+
+// ============================================
+// STAGE 2-5: PILLAR ANALYSIS
+// ============================================
+
+export async function analyzePillar(
+  pillarName: string,
+  fullData: any,
+  pillarScores: any,
+  context?: any
+): Promise<PillarAnalysis> {
+  const pillarDetails = getPillarDetails(pillarName, fullData, pillarScores);
+
+  let contextInfo = '';
+  if (context) {
+    contextInfo = `\nContext from previous analysis:\n`;
+    if (context.executive) contextInfo += `- Primary concern: ${context.executive.primary_concern}\n`;
+    if (context.security) contextInfo += `- Security gaps: ${context.security.gaps?.join('; ')}\n`;
+    if (context.legal) contextInfo += `- Legal gaps: ${context.legal.gaps?.join('; ')}\n`;
+  }
+
+  const prompt = `${KEEP_FRAMEWORK}
+${contextInfo}
+
+Analyze the ${pillarName.toUpperCase()} pillar:
+${pillarDetails}
+
+Return JSON:
+{
+  "analysis": "3-4 sentences on this pillar's impact on inheritance",
+  "gaps": ["2-3 specific gaps"],
+  "score": ${pillarScores[getPillarKey(pillarName)]},
+  "weight": "${getPillarWeight(pillarName)}"
+}`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 600,
+    system: "You are a Bitcoin inheritance expert. Return only valid JSON.",
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return parseJSON(extractTextFromResponse(response));
+}
+
+// ============================================
+// STAGE 6: PATTERNS ANALYSIS
+// ============================================
+
+export async function analyzePatterns(pillars: {
+  security?: PillarAnalysis;
+  legal?: PillarAnalysis;
+  access?: PillarAnalysis;
+  maintenance?: PillarAnalysis;
+}): Promise<PatternsAnalysis> {
+  const allGaps = [
+    ...(pillars.security?.gaps || []),
+    ...(pillars.legal?.gaps || []),
+    ...(pillars.access?.gaps || []),
+    ...(pillars.maintenance?.gaps || [])
+  ];
+
+  const prompt = `Based on these gaps across all KEEP pillars:
+${allGaps.join('\n')}
+
+Identify patterns in JSON:
+{
+  "systemic_patterns": "Overall patterns across pillars",
+  "compound_risks": "How gaps compound each other",
+  "critical_vulnerability": "Most dangerous combination"
+}`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 500,
+    system: "You are a Bitcoin inheritance expert. Return only valid JSON.",
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return parseJSON(extractTextFromResponse(response));
+}
+
+// ============================================
+// STAGE 7: ACTION PLAN
+// ============================================
+
+export async function createActionPlan(
+  fullData: any,
+  keepScore: number,
+  birs: number,
+  context: {
+    executive: ExecutiveAnalysis;
+    security?: PillarAnalysis;
+    legal?: PillarAnalysis;
+    access?: PillarAnalysis;
+    maintenance?: PillarAnalysis;
+    patterns?: PatternsAnalysis;
+  }
+): Promise<ActionPlan> {
+  // Dynamic action count based on severity
+  const getActionGuidance = (score: number) => {
+    if (score < 30) return {
+      count: "7-10 critical actions",
+      urgency: "EMERGENCY - Every gap is a critical failure point"
     };
-
-    return fullAnalysis;
-
-  } catch (error) {
-    console.error('AI analysis error:', error);
-    console.error('Error details:', {
-      message: error instanceof Error ? error.message : 'Unknown error',
-      stack: error instanceof Error ? error.stack : undefined,
-      hasApiKey: !!process.env.ANTHROPIC_API_KEY,
-      apiKeyLength: process.env.ANTHROPIC_API_KEY?.length || 0
-    });
-    // Return fallback analysis if AI fails
-    return generateFallbackAnalysis(formData, scores);
-  }
-}
-
-/**
- * Calculate basic scores from form data
- */
-function calculateBasicScores(formData: any) {
-  let security = 5;
-  let legal = 5;
-  let access = 5;
-  let maintenance = 5;
-
-  // Security scoring
-  if (formData.primary_wallet_type === 'single-sig') security -= 2;
-  if (formData.primary_wallet_type?.includes('multisig')) security += 2;
-  if (formData.number_of_keys >= 3) security += 1;
-  if (formData.backup_locations >= 2) security += 1;
-  if (formData.cryptographic_proof_created) security += 1;
-
-  // Legal scoring
-  if (formData.has_will_or_trust) legal += 2;
-  if (formData.bitcoin_explicitly_mentioned) legal += 2;
-  if (formData.rufadaa_authority_added) legal += 1;
-  if (formData.attorney_name) legal += 1;
-
-  // Access scoring
-  if (formData.keyholder_list) access += 1;
-  if (formData.access_instructions_format) access += 2;
-  if (formData.emergency_contacts_documented) access += 1;
-  if (formData.rehearsed_recovery_plan) access += 1;
-
-  // Maintenance scoring
-  if (formData.tracks_cost_basis) maintenance += 2;
-  if (formData.annual_review_scheduled) maintenance += 2;
-  if (formData.timestamped_evidence_exists) maintenance += 1;
-
-  // Normalize scores to 0-10 range
-  security = Math.min(10, Math.max(0, security));
-  legal = Math.min(10, Math.max(0, legal));
-  access = Math.min(10, Math.max(0, access));
-  maintenance = Math.min(10, Math.max(0, maintenance));
-
-  // Calculate KEEP score (average of all pillars)
-  const keepScore = Math.round((security + legal + access + maintenance) * 2.5);
-
-  return {
-    security,
-    legal,
-    access,
-    maintenance,
-    keepScore
+    if (score < 50) return {
+      count: "5-7 priority actions",
+      urgency: "HIGH RISK - Multiple serious vulnerabilities"
+    };
+    if (score < 70) return {
+      count: "3-5 targeted actions",
+      urgency: "MODERATE - Key improvements needed"
+    };
+    return {
+      count: "2-3 refinements",
+      urgency: "GOOD - Minor optimizations only"
+    };
   };
-}
 
-/**
- * Build analysis prompt for AI
- */
-function buildAnalysisPrompt(formData: any, scores: any): string {
-  return `Analyze this Bitcoin inheritance audit submission and provide detailed insights.
+  const guidance = getActionGuidance(keepScore);
 
-Client Information:
-- Name: ${formData.full_name}
-- BTC Holdings: $${formData.btc_value_usd || 100000}
-- Location: ${formData.location_state}, ${formData.location_country || 'USA'}
+  // Count actual gaps identified
+  const gapCount = [
+    ...(context.security?.gaps || []),
+    ...(context.legal?.gaps || []),
+    ...(context.access?.gaps || []),
+    ...(context.maintenance?.gaps || [])
+  ].length;
 
-Current Setup:
-- Wallet Type: ${formData.primary_wallet_type}
-- Custody Platform: ${formData.primary_custody_platform}
-- Number of Keys: ${formData.number_of_keys}
-- Has Will/Trust: ${formData.has_will_or_trust}
-- Bitcoin Mentioned in Docs: ${formData.bitcoin_explicitly_mentioned}
-- RUFADAA Authority: ${formData.rufadaa_authority_added}
+  // Determine exact number of actions to generate
+  const actionCount = Math.min(10, Math.max(2, gapCount)); // Cap at 10, minimum 2
 
-Calculated Scores:
-- Security: ${scores.security}/10
-- Legal: ${scores.legal}/10
-- Access: ${scores.access}/10
-- Maintenance: ${scores.maintenance}/10
-- KEEP Score: ${scores.keepScore}/100
+  const prompt = `Based on complete analysis of ${fullData.full_name}'s Bitcoin inheritance:
+- Current: ${keepScore}/100 (${getTier(keepScore)})
+- Risk: $${Math.round(birs).toLocaleString()}
+- Primary concern: ${context.executive.primary_concern}
+- Identified gaps: ${gapCount} critical issues found
+- Severity: ${guidance.urgency}
 
-Please provide:
-1. Detailed analysis for each KEEP pillar (Security, Legal, Access, Maintenance)
-2. Specific gaps and vulnerabilities identified
-3. Actionable recommendations (immediate, short-term, long-term)
-4. Executive summary of the inheritance posture
+Create dynamic action plan with EXACTLY ${actionCount} priority actions.
 
-Format your response as structured JSON with sections for each pillar, recommendations, and summary.`;
-}
+Each gap found:
+${[...(context.security?.gaps || []), ...(context.legal?.gaps || []), ...(context.access?.gaps || []), ...(context.maintenance?.gaps || [])].map((gap, i) => `${i+1}. ${gap}`).join('\n')}
 
-/**
- * Parse AI response into structured format
- */
-function parseAIResponse(content: any): any {
-  try {
-    // If AI returns JSON, parse it
-    if (content.type === 'text' && content.text) {
-      const jsonMatch = content.text.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
-      }
+Generate ${actionCount} actions addressing the most critical gaps.
+
+Return JSON:
+{
+  "priority_actions": [
+    {
+      "priority": "High",
+      "action": "Action title addressing gap",
+      "rationale": "How this fixes the gap",
+      "timeline": "Immediate/This Week/This Month"
     }
-  } catch (error) {
-    console.error('Error parsing AI response:', error);
+  ],
+  "roadmap": {
+    "immediate": ["First 1-2 action titles"],
+    "month_1": ["Next 2-3 action titles"],
+    "quarter_1": ["Remaining action titles"]
+  },
+  "gap_coverage": "${actionCount} of ${gapCount} critical gaps addressed"
+}`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 2000,
+    system: "You are a Bitcoin inheritance expert. Return only valid JSON.",
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return parseJSON(extractTextFromResponse(response));
+}
+
+// ============================================
+// STAGE 8: RISK SCENARIOS
+// ============================================
+
+export async function createScenarios(
+  fullData: any,
+  keepScore: number,
+  context: {
+    executive: ExecutiveAnalysis;
+    patterns?: PatternsAnalysis;
+  }
+): Promise<ScenariosAnalysis> {
+  const prompt = `Create 2 risk scenarios for ${fullData.full_name} (KEEP score: ${keepScore}/100):
+
+Consider:
+- Primary concern: ${context.executive.primary_concern}
+- Patterns: ${context.patterns?.systemic_patterns}
+
+Return JSON:
+{
+  "scenarios": [
+    {
+      "title": "Scenario name",
+      "trigger": "What causes it",
+      "cascade": "How it unfolds",
+      "outcome": "Final result",
+      "prevention": "How to prevent"
+    }
+  ]
+}`;
+
+  const response = await anthropic.messages.create({
+    model: 'claude-sonnet-4-5',
+    max_tokens: 800,
+    system: "You are a Bitcoin inheritance expert. Return only valid JSON.",
+    messages: [{ role: 'user', content: prompt }]
+  });
+
+  return parseJSON(extractTextFromResponse(response));
+}
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+function extractTextFromResponse(response: any): string {
+  const textBlock = response.content.find((block: any) => block.type === 'text');
+  if (!textBlock || textBlock.type !== 'text') {
+    throw new Error('No text response from AI');
+  }
+  return textBlock.text;
+}
+
+function parseJSON(text: string): any {
+  const cleaned = text.replace(/```json\n?/gi, '').replace(/```\n?/gi, '').trim();
+
+  const match = cleaned.match(/\{(?:[^{}]|(?:\{(?:[^{}]|(?:\{[^{}]*\})*)*\}))*\}/);
+  if (match) {
+    try {
+      return JSON.parse(match[0]);
+    } catch (e) {
+      // Continue
+    }
   }
 
-  // Return empty object if parsing fails
-  return {};
+  try {
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.error('JSON parse failed:', error);
+    throw new Error(`Failed to parse AI response: ${text.substring(0, 200)}...`);
+  }
 }
 
-/**
- * Calculate Bitcoin Inheritance Risk Score (BIRS)
- */
-function calculateBIRS(keepScore: number, btcValue: number): number {
-  // BIRS = Expected loss based on KEEP score
-  // Lower KEEP score = Higher risk of loss
-  const riskPercentage = (100 - keepScore) / 100;
-  return Math.round(btcValue * riskPercentage);
-}
-
-/**
- * Get tier based on KEEP score (matches original implementation)
- */
-function getTier(keepScore: number): string {
-  if (keepScore >= 86) return 'Institutional Grade';
-  if (keepScore >= 71) return 'Strong Foundation';
-  if (keepScore >= 56) return 'Basic Protection';
-  if (keepScore >= 41) return 'Vulnerable';
+export function getTier(score: number): string {
+  if (score >= 86) return 'Institutional Grade';
+  if (score >= 71) return 'Strong Foundation';
+  if (score >= 51) return 'Exposed';
+  if (score >= 31) return 'Major Gaps';
   return 'Critical Risk';
 }
 
-/**
- * Identify critical gaps from form data
- */
-function identifyCriticalGaps(formData: any, scores: any): string[] {
-  const gaps: string[] = [];
+function getPillarDetails(pillar: string, fullData: any, scores: any): string {
+  const details: Record<string, string> = {
+    security: `Score: ${scores.secure}/10 (30% weight)
+Wallet: ${fullData.primary_wallet_type}
+Key distribution: ${fullData.q1_key_distribution}/3
+Backup strategy: ${fullData.q2_backup_strategy}/3
+Awareness: ${fullData.q3_keyholder_awareness}/3`,
 
-  if (!formData.has_will_or_trust) {
-    gaps.push('No will or trust in place');
-  }
-  if (!formData.bitcoin_explicitly_mentioned) {
-    gaps.push('Bitcoin not mentioned in legal documents');
-  }
-  if (formData.primary_wallet_type === 'single-sig') {
-    gaps.push('Single-signature wallet presents single point of failure');
-  }
-  if (!formData.keyholder_list || formData.number_of_keys < 2) {
-    gaps.push('Insufficient key distribution for recovery');
-  }
-  if (!formData.access_instructions_format) {
-    gaps.push('No documented access instructions');
-  }
+    legal: `Score: ${scores.legal}/10 (25% weight)
+Has will/trust: ${fullData.has_will_or_trust}
+Bitcoin mentioned: ${fullData.bitcoin_explicitly_mentioned}
+Integration: ${fullData.q4_legal_integration}/3
+Governance: ${fullData.q5_governance_alignment}/3`,
 
-  return gaps;
-}
+    access: `Score: ${scores.access}/10 (25% weight)
+Emergency access: ${fullData.q6_emergency_access}/3
+Testing: ${fullData.q7_inheritance_testing}/3
+Who can access: ${fullData.who_can_access_today}`,
 
-// Gap generation functions
-function generateSecurityGaps(formData: any): string[] {
-  const gaps: string[] = [];
-  if (formData.primary_wallet_type === 'single-sig') {
-    gaps.push('Single-signature wallet vulnerability');
-  }
-  if (formData.backup_locations < 2) {
-    gaps.push('Insufficient backup locations');
-  }
-  if (!formData.cryptographic_proof_created) {
-    gaps.push('No cryptographic proof of ownership');
-  }
-  return gaps;
-}
-
-function generateLegalGaps(formData: any): string[] {
-  const gaps: string[] = [];
-  if (!formData.has_will_or_trust) {
-    gaps.push('No estate planning documents');
-  }
-  if (!formData.bitcoin_explicitly_mentioned) {
-    gaps.push('Digital assets not addressed in legal docs');
-  }
-  if (!formData.rufadaa_authority_added) {
-    gaps.push('Missing RUFADAA digital asset authority');
-  }
-  return gaps;
-}
-
-function generateAccessGaps(formData: any): string[] {
-  const gaps: string[] = [];
-  if (!formData.keyholder_list) {
-    gaps.push('Key holders not documented');
-  }
-  if (!formData.access_instructions_format) {
-    gaps.push('No recovery instructions provided');
-  }
-  if (!formData.rehearsed_recovery_plan) {
-    gaps.push('Recovery plan never tested');
-  }
-  return gaps;
-}
-
-function generateMaintenanceGaps(formData: any): string[] {
-  const gaps: string[] = [];
-  if (!formData.tracks_cost_basis) {
-    gaps.push('Cost basis not tracked for tax purposes');
-  }
-  if (!formData.annual_review_scheduled) {
-    gaps.push('No regular review process');
-  }
-  return gaps;
-}
-
-// Analysis generation functions
-function generateSecurityAnalysis(formData: any, score: number): string {
-  return `Security posture scores ${score}/10. ${
-    score < 5 ? 'Critical vulnerabilities detected requiring immediate attention.' :
-    score < 8 ? 'Moderate security measures in place with room for improvement.' :
-    'Strong security foundation with industry best practices.'
-  } Key findings include wallet architecture assessment and backup redundancy evaluation.`;
-}
-
-function generateLegalAnalysis(formData: any, score: number): string {
-  return `Legal integration scores ${score}/10. ${
-    formData.has_will_or_trust ? 'Estate planning documents exist' : 'No formal estate planning'
-  }. Bitcoin ${formData.bitcoin_explicitly_mentioned ? 'is' : 'is not'} explicitly mentioned in legal documents. RUFADAA compliance ${
-    formData.rufadaa_authority_added ? 'achieved' : 'pending'
-  }.`;
-}
-
-function generateAccessAnalysis(formData: any, score: number): string {
-  return `Access framework scores ${score}/10. Recovery procedures ${
-    formData.access_instructions_format ? 'documented' : 'not documented'
-  }. ${formData.number_of_keys || 1} key(s) distributed among holders. Emergency protocols ${
-    formData.emergency_contacts_documented ? 'established' : 'need development'
-  }.`;
-}
-
-function generateMaintenanceAnalysis(formData: any, score: number): string {
-  return `Maintenance practices score ${score}/10. Cost basis tracking ${
-    formData.tracks_cost_basis ? 'active' : 'not implemented'
-  }. Regular review cycles ${
-    formData.annual_review_scheduled ? 'scheduled' : 'not established'
-  }. Documentation currency requires attention.`;
-}
-
-// Recommendation generation functions
-function generateImmediateRecs(formData: any, scores: any): string[] {
-  const recs: string[] = [];
-  if (scores.keepScore < 40) {
-    recs.push('Schedule emergency planning session');
-  }
-  if (!formData.has_will_or_trust) {
-    recs.push('Consult estate planning attorney immediately');
-  }
-  if (formData.primary_wallet_type === 'single-sig') {
-    recs.push('Implement multisignature wallet architecture');
-  }
-  return recs;
-}
-
-function generateShortTermRecs(formData: any, scores: any): string[] {
-  const recs: string[] = [];
-  recs.push('Document comprehensive recovery procedures');
-  recs.push('Establish key holder coordination protocol');
-  recs.push('Create encrypted backup strategy');
-  return recs;
-}
-
-function generateLongTermRecs(formData: any, scores: any): string[] {
-  const recs: string[] = [];
-  recs.push('Implement annual review and update cycle');
-  recs.push('Develop beneficiary education program');
-  recs.push('Create succession planning framework');
-  return recs;
-}
-
-function generateExecutiveSummary(formData: any, scores: any): string {
-  return `Bitcoin inheritance audit reveals a KEEP score of ${scores.keepScore}/100 (${
-    getTier(scores.keepScore)
-  }). Holdings of $${formData.btc_value_usd || 100000} face expected loss exposure of $${
-    calculateBIRS(scores.keepScore, formData.btc_value_usd || 100000)
-  }. Primary concerns include ${
-    identifyCriticalGaps(formData, scores).slice(0, 2).join(' and ')
-  }. Immediate action required to secure inheritance framework.`;
-}
-
-/**
- * Generate fallback analysis if AI fails
- */
-function generateFallbackAnalysis(formData: any, scores: any): AuditAnalysis {
-  const criticalGaps = identifyCriticalGaps(formData, scores);
-  return {
-    current_state: {
-      keep_score: scores.keepScore,
-      holdings: formData.btc_value_usd || 100000,
-      btc_value: formData.btc_value_usd || 100000,
-      birs: calculateBIRS(scores.keepScore, formData.btc_value_usd || 100000),
-      tier: getTier(scores.keepScore),
-      critical_gaps: criticalGaps
-    },
-    executive: {
-      executive_summary: generateExecutiveSummary(formData, scores),
-      primary_concern: criticalGaps.length > 0 ? criticalGaps[0] : 'Review complete inheritance framework'
-    },
-    security: {
-      score: scores.security,
-      gaps: generateSecurityGaps(formData),
-      analysis: generateSecurityAnalysis(formData, scores.security)
-    },
-    legal: {
-      score: scores.legal,
-      gaps: generateLegalGaps(formData),
-      analysis: generateLegalAnalysis(formData, scores.legal)
-    },
-    access: {
-      score: scores.access,
-      gaps: generateAccessGaps(formData),
-      analysis: generateAccessAnalysis(formData, scores.access)
-    },
-    maintenance: {
-      score: scores.maintenance,
-      gaps: generateMaintenanceGaps(formData),
-      analysis: generateMaintenanceAnalysis(formData, scores.maintenance)
-    },
-    recommendations: {
-      immediate: generateImmediateRecs(formData, scores),
-      short_term: generateShortTermRecs(formData, scores),
-      long_term: generateLongTermRecs(formData, scores)
-    }
+    maintenance: `Score: ${scores.maintenance || scores.future}/10 (20% weight)
+Succession: ${fullData.q8_succession_planning}/3
+Reviews: ${fullData.q9_governance_reviews}/3
+Last update: ${fullData.last_estate_plan_update || 'Unknown'}`
   };
+
+  return details[pillar] || '';
+}
+
+function getPillarKey(pillar: string): string {
+  const keys: Record<string, string> = {
+    security: 'secure',
+    legal: 'legal',
+    access: 'access',
+    maintenance: 'future'
+  };
+  return keys[pillar] || pillar;
+}
+
+function getPillarWeight(pillar: string): string {
+  const weights: Record<string, string> = {
+    security: '30%',
+    legal: '25%',
+    access: '25%',
+    maintenance: '20%'
+  };
+  return weights[pillar] || '0%';
 }
