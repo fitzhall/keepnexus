@@ -102,18 +102,20 @@ export function ShareWizard({ onComplete, onCancel }: ShareWizardProps) {
 
     try {
       // Create KeepNexusFile from current setup
+      // Note: createFile expects MultisigSetup for first arg; we pass wallets[0] info
+      // as the legacy MultisigSetup shape for backward compat with file-export
       const keepNexusFile = keepNexusFileService.createFile(
-        setup.multisig,
+        setup.wallets?.[0] as any, // wallet as legacy MultisigSetup
         undefined, // analysis
-        setup.governanceRules,
+        setup.governance_rules,
         setup.heirs,
-        setup.trust,
-        setup.scheduleEvents,
-        { history: setup.drillHistory, settings: setup.drillSettings },
-        setup.vaultSettings,
-        setup.taxSettings,
-        setup.captainSettings,
-        setup.foreverSettings
+        setup.legal as any,
+        undefined, // scheduleEvents removed
+        undefined, // drills data (legacy format)
+        undefined, // vaultSettings removed
+        undefined, // taxSettings — now professionals.cpa
+        undefined, // captainSettings — now professionals
+        undefined  // foreverSettings removed
       )
 
       // Generate share bundle

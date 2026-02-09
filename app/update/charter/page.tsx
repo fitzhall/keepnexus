@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
-import type { FamilyCharter } from '@/lib/risk-simulator/types'
+import type { Charter } from '@/lib/keep-core/data-model'
 
 export default function CharterPage() {
   const router = useRouter()
@@ -29,7 +29,7 @@ export default function CharterPage() {
   }
 
   const handleSave = () => {
-    const updated: FamilyCharter = {
+    const updated: Charter = {
       mission: mission.trim(),
       principles,
       reviewFrequency,

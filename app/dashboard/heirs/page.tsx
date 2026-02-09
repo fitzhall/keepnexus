@@ -30,8 +30,10 @@ export default function HeirsPage() {
       name: formData.name,
       relationship: formData.relationship,
       allocation: parseInt(formData.allocation) || 0,
-      email: formData.email || undefined,
-      phone: formData.phone || undefined,
+      contact: (formData.email || formData.phone) ? {
+        email: formData.email || undefined,
+        phone: formData.phone || undefined,
+      } : undefined,
       isKeyHolder: formData.isKeyHolder
     }
 
@@ -51,8 +53,10 @@ export default function HeirsPage() {
             name: formData.name,
             relationship: formData.relationship,
             allocation: parseInt(formData.allocation) || 0,
-            email: formData.email || undefined,
-            phone: formData.phone || undefined,
+            contact: (formData.email || formData.phone) ? {
+              email: formData.email || undefined,
+              phone: formData.phone || undefined,
+            } : undefined,
             isKeyHolder: formData.isKeyHolder
           }
         : heir
@@ -74,8 +78,8 @@ export default function HeirsPage() {
       name: heir.name,
       relationship: heir.relationship,
       allocation: heir.allocation?.toString() || '',
-      email: heir.email || '',
-      phone: heir.phone || '',
+      email: heir.contact?.email || '',
+      phone: heir.contact?.phone || '',
       isKeyHolder: heir.isKeyHolder || false
     })
     setShowEditModal(true)
@@ -83,19 +87,19 @@ export default function HeirsPage() {
 
   // Check if heir has participated in recent drills
   const isHeirTrained = (heirName: string) => {
-    return setup.drillHistory.some(drill =>
-      drill.participants.includes(heirName) && drill.result === 'passed'
+    return setup.drills.some(drill =>
+      drill.participants.includes(heirName) && drill.success
     )
   }
 
   // Get last drill date for heir
   const getLastDrill = (heirName: string) => {
-    const drills = setup.drillHistory
+    const heirDrills = setup.drills
       .filter(drill => drill.participants.includes(heirName))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
 
-    if (drills.length === 0) return 'Never'
-    return new Date(drills[0].date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    if (heirDrills.length === 0) return 'Never'
+    return new Date(heirDrills[0].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   }
 
   return (

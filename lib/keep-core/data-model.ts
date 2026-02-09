@@ -1,7 +1,12 @@
 /**
- * KEEP Core Data Model
- * Complete type definitions for the Little Shard™ file format
- * This is the sovereign data model that powers both the Score Engine and Risk Simulator
+ * KEEP Core Data Model v2.0
+ * Unified type definitions for the .keep file format
+ * This IS the file format AND the app's internal state.
+ * Organized around the KEEP framework pillars:
+ *   K — Key Governance
+ *   E — Estate Integration
+ *   E — Ensured Continuity
+ *   P — Professional Stewardship
  */
 
 // ============================================================================
@@ -35,7 +40,7 @@ export interface KEEPScore {
 }
 
 // ============================================================================
-// Wallet & Key Configuration
+// K — Key Governance
 // ============================================================================
 
 export interface ShardConfiguration {
@@ -45,13 +50,13 @@ export interface ShardConfiguration {
 }
 
 export interface KeyHolder {
-  id: string;                          // Unique identifier (e.g., "kh_001")
+  id: string;
   role: KeyRole;
-  name: string;                        // Display name
-  jurisdiction: string;                // Country/state for legal purposes
+  name: string;
+  jurisdiction: string;
   storage_type: StorageType;
-  location: string;                    // Physical location description
-  key_age_days: number;               // Days since key creation/rotation
+  location: string;
+  key_age_days: number;
   is_sharded: boolean;
   shard_config?: ShardConfiguration;
   contact?: {
@@ -59,7 +64,7 @@ export interface KeyHolder {
     phone?: string;
     address?: string;
   };
-  last_verified?: string;              // Last verification date
+  last_verified?: string;
 }
 
 export interface Wallet {
@@ -68,55 +73,65 @@ export interface Wallet {
   threshold: number;                   // M in M-of-N
   total_keys: number;                  // N in M-of-N
   created_at: string;
-  label?: string;                      // Human-readable name
-  balance_sats?: number;               // Optional balance tracking
+  label?: string;
+  platform?: string;                   // Theya, Casa, Unchained, Nunchuk, etc.
+  balance_sats?: number;
 }
 
-// ============================================================================
-// Redundancy & Distribution
-// ============================================================================
+export interface GovernanceRule {
+  id: string;
+  who: string;
+  canDo: string;
+  when: string;
+  condition: string;
+  status: 'active' | 'paused' | 'pending';
+  risk?: 'low' | 'medium' | 'high';
+  lastExecuted?: string;
+  executions?: number;
+}
 
 export interface RedundancyMetrics {
-  device_count: number;               // Unique devices holding keys
-  location_count: number;             // Unique physical locations
-  person_count: number;               // Unique people with access
-  geographic_distribution: string[];  // List of cities/regions
-  passes_3_3_3_rule: boolean;        // 3 devices, 3 locations, 3 people minimum
+  device_count: number;
+  location_count: number;
+  person_count: number;
+  geographic_distribution: string[];
+  passes_3_3_3_rule: boolean;
 }
 
 // ============================================================================
-// Activity & Drills
+// E — Estate Integration
 // ============================================================================
 
-export interface Drill {
+export interface Heir {
   id: string;
-  timestamp: string;
-  type: DrillType;
-  participants: string[];              // KeyHolder IDs who participated
-  success: boolean;
-  duration_minutes?: number;
-  notes?: string;
-  issues_found?: string[];
+  name: string;
+  relationship: string;
+  allocation?: number;                 // Percentage of inheritance
+  isKeyHolder?: boolean;
+  contact?: {
+    email?: string;
+    phone?: string;
+  };
 }
 
-export interface KeyRotation {
-  id: string;
-  timestamp: string;
-  keys_rotated: string[];             // KeyHolder IDs that were rotated
-  reason: string;
-  new_descriptor?: string;            // New wallet descriptor if changed
+export interface Charter {
+  mission: string;
+  principles: string[];
+  reviewFrequency: 'quarterly' | 'annual';
+  lastReviewed?: string;               // ISO 8601
 }
-
-// ============================================================================
-// Legal & Education
-// ============================================================================
 
 export interface LegalDocuments {
   has_will: boolean;
   has_trust: boolean;
   has_letter_of_instruction: boolean;
-  last_review: string;                // ISO 8601 date
-  next_review: string;                // ISO 8601 date
+  trust_name?: string;
+  jurisdiction?: string;
+  bitcoin_in_docs?: boolean;
+  rufadaa_filed?: boolean;
+  trustee_names?: string[];
+  last_review: string;
+  next_review: string;
   attorney_contact?: {
     name: string;
     firm: string;
@@ -125,16 +140,86 @@ export interface LegalDocuments {
   };
 }
 
-export interface EducationStatus {
-  heirs_trained: boolean;
-  last_training: string;              // ISO 8601 date
-  next_review: string;                // ISO 8601 date
-  training_materials_location?: string;
-  trained_heirs: string[];            // KeyHolder IDs of trained heirs
+// ============================================================================
+// E — Ensured Continuity
+// ============================================================================
+
+export interface Drill {
+  id: string;
+  timestamp: string;
+  type: DrillType;
+  participants: string[];
+  success: boolean;
+  duration_minutes?: number;
+  notes?: string;
+  issues_found?: string[];
+}
+
+export interface ContinuityConfig {
+  checkin_frequency: 'monthly' | 'quarterly' | 'annual';
+  drill_frequency: 'monthly' | 'quarterly' | 'annual';
+  last_checkin?: string;               // ISO 8601
+  next_checkin_due?: string;           // ISO 8601
+  last_drill?: string;                // ISO 8601
+  next_drill_due?: string;            // ISO 8601
+  life_event_triggers?: string[];
+  notification_days?: number;
+}
+
+export interface KeyRotation {
+  id: string;
+  timestamp: string;
+  keys_rotated: string[];
+  reason: string;
+  new_descriptor?: string;
 }
 
 // ============================================================================
-// Risk Analysis
+// P — Professional Stewardship
+// ============================================================================
+
+export interface ProfessionalContact {
+  name: string;
+  firm?: string;
+  email?: string;
+  phone?: string;
+}
+
+export interface ProfessionalNetwork {
+  advisor?: ProfessionalContact;
+  attorney?: ProfessionalContact;
+  cpa?: ProfessionalContact;
+}
+
+export interface EducationStatus {
+  heirs_trained: boolean;
+  last_training: string;
+  next_review: string;
+  training_materials_location?: string;
+  trained_heirs: string[];
+}
+
+// ============================================================================
+// Integrity (cross-cutting)
+// ============================================================================
+
+export interface ThapIntegrity {
+  current_hash: string;
+  history: { hash: string; timestamp: string; note?: string }[];
+}
+
+export interface EventLogEntry {
+  id: string;
+  timestamp: string;
+  event_type: string;
+  description: string;
+  actor?: string;
+  metadata?: Record<string, any>;
+  hash?: string;                      // Hash of previous entry for tamper evidence
+}
+
+// ============================================================================
+// Risk Analysis (optional, computed)
 // ============================================================================
 
 export interface ScenarioResult {
@@ -143,73 +228,61 @@ export interface ScenarioResult {
   outcome: ScenarioOutcome;
   available_keys: number;
   required_keys: number;
-  recovery_path?: string[];           // KeyHolder IDs that would be used
-  mitigation?: string;                // Suggested fix if not recoverable
+  recovery_path?: string[];
+  mitigation?: string;
 }
 
 export interface RiskAnalysis {
-  last_run: string;                   // ISO 8601 timestamp
-  scenarios_tested: number;           // Number of scenarios tested
-  monte_carlo_iterations?: number;    // If probabilistic simulation was used
-  probability_of_recovery: number;    // 0-1 probability
-  critical_risks: string[];           // List of critical scenario names
-  mitigation_applied: string[];       // List of mitigations already applied
+  last_run: string;
+  scenarios_tested: number;
+  monte_carlo_iterations?: number;
+  probability_of_recovery: number;
+  critical_risks: string[];
+  mitigation_applied: string[];
   scenario_results: ScenarioResult[];
 }
 
 // ============================================================================
-// Main Little Shard™ File Format
+// Main Little Shard™ File Format v2.0 — The .keep file
 // ============================================================================
 
 export interface LittleShardFile {
   // File metadata
-  version: string;                    // Format version (e.g., "1.0.0")
-  created_at: string;                 // ISO 8601 timestamp
-  last_modified: string;              // ISO 8601 timestamp
+  version: string;                    // "2.0.0"
+  created_at: string;                 // ISO 8601
+  last_modified: string;              // ISO 8601
   file_hash?: string;                 // SHA-256 hash for integrity
 
-  // Family/entity information
-  family_name: string;                // e.g., "Chen Family"
+  // Family/entity
+  family_name: string;
 
-  // Core components
-  keep_score: KEEPScore;
+  // K — Key Governance
   wallets: Wallet[];
   keyholders: KeyHolder[];
+  governance_rules: GovernanceRule[];
   redundancy: RedundancyMetrics;
 
-  // Activity tracking
+  // E — Estate Integration
+  heirs: Heir[];
+  charter: Charter;
+  legal: LegalDocuments;
+
+  // E — Ensured Continuity
   drills: Drill[];
+  continuity: ContinuityConfig;
   rotations: KeyRotation[];
 
-  // Legal & education
-  legal_docs: LegalDocuments;
+  // P — Professional Stewardship
+  professionals: ProfessionalNetwork;
   education: EducationStatus;
 
-  // Risk assessment
-  risk_analysis: RiskAnalysis;
+  // Integrity
+  keep_score: KEEPScore;
+  thap: ThapIntegrity;
+  event_log: EventLogEntry[];
 
-  // Optional governance rules (for future Governator integration)
-  governance_rules?: {
-    version: string;
-    rules: any[];                    // To be defined in Governator module
-  };
-
-  // Append-only event log
-  event_log?: EventLogEntry[];
-}
-
-// ============================================================================
-// Event Log (Append-Only)
-// ============================================================================
-
-export interface EventLogEntry {
-  id: string;
-  timestamp: string;
-  event_type: string;
-  description: string;
-  actor?: string;                     // Who performed the action
-  metadata?: Record<string, any>;
-  hash?: string;                      // Hash of previous entry for tamper evidence
+  // Risk assessment (optional, computed)
+  risk_analysis?: RiskAnalysis;
 }
 
 // ============================================================================
@@ -221,17 +294,13 @@ export interface Scenario {
   name: string;
   description: string;
   category: 'death' | 'loss' | 'theft' | 'legal' | 'geographic' | 'technical';
-
-  // Multiple ways to specify affected keys for flexibility
-  affected_roles?: KeyRole[];         // e.g., ['primary', 'spouse']
-  affected_indices?: number[];        // e.g., [0, 1] for first two keys
-  affected_locations?: string[];      // e.g., ['home', 'office']
-  affected_key_ids?: string[];        // Specific KeyHolder IDs
-
-  // Optional parameters for simulation
-  probability?: number;                // 0-1 probability of occurrence
-  time_horizon_days?: number;         // When this might occur
-  cascading_failures?: string[];      // Other scenarios this triggers
+  affected_roles?: KeyRole[];
+  affected_indices?: number[];
+  affected_locations?: string[];
+  affected_key_ids?: string[];
+  probability?: number;
+  time_horizon_days?: number;
+  cascading_failures?: string[];
 }
 
 // ============================================================================
@@ -242,8 +311,8 @@ export interface MitigationAction {
   id: string;
   name: string;
   description: string;
-  fixes_scenarios: string[];          // Scenario IDs this helps with
-  score_impact: number;               // Expected KEEP Score improvement
+  fixes_scenarios: string[];
+  score_impact: number;
   implementation_steps: string[];
   estimated_cost?: string;
   estimated_time?: string;
@@ -262,10 +331,6 @@ export interface FileMetadata {
   application_version?: string;
 }
 
-// ============================================================================
-// Validation
-// ============================================================================
-
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
@@ -281,14 +346,14 @@ export interface ScoreRecommendation {
   priority: 'high' | 'medium' | 'low';
   category: keyof KEEPScoreComponents;
   action: string;
-  expected_improvement: number;       // Points added to score
+  expected_improvement: number;
   effort: 'easy' | 'moderate' | 'complex';
 }
 
 export interface SimulationConfig {
   mode: 'deterministic' | 'monte-carlo';
-  iterations?: number;                // For Monte Carlo
+  iterations?: number;
   time_horizon_days?: number;
   include_cascading_failures?: boolean;
-  confidence_level?: number;          // e.g., 0.95 for 95% confidence
+  confidence_level?: number;
 }

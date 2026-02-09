@@ -8,7 +8,16 @@
 
 import { MultisigSetup, SimulationResult } from './types'
 import { DocumentEncryptionService } from '../documents/encryption'
-import { GovernanceRule, Heir, TrustInfo } from '../context/FamilySetup'
+import { GovernanceRule, Heir } from '../context/FamilySetup'
+
+/**
+ * Trust/legal entity information (legacy KeepNexusFile format)
+ */
+export interface TrustInfo {
+  trustName?: string
+  documentIds?: string[]
+  lastReviewed?: string
+}
 
 /**
  * Schedule Event - Recurring or one-time events for the family

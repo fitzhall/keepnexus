@@ -12,13 +12,19 @@ import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 export default function VaultPage() {
   // Use context for vault settings
-  const { setup, updateVaultSettings } = useFamilySetup()
-  const { vaultSettings = {
+  const { setup } = useFamilySetup()
+  const primaryWallet = setup.wallets[0]
+  const keyholders = setup.keyholders
+
+  // Local vault settings state (vaultSettings removed from data model)
+  const [vaultSettings, setVaultSettings] = useState({
     walletType: 'hardware',
     rotationFrequency: 90,
-    backupLocations: [],
-    testTransactionCompleted: false
-  }, multisig } = setup
+    backupLocations: [] as string[],
+    testTransactionCompleted: false,
+    lastRotationDate: undefined as Date | undefined,
+  })
+  const updateVaultSettings = (settings: typeof vaultSettings) => setVaultSettings(settings)
   const [wallet, setWallet] = useState<WalletStatus>({ connected: false })
   const [shamir, setShamir] = useState<ShamirConfig | null>(null)
   const [showShamir, setShowShamir] = useState(false)
@@ -257,7 +263,7 @@ export default function VaultPage() {
                 <Shield className="w-5 h-5 text-green-600" />
                 <div className="flex-1">
                   <p className="text-sm font-medium text-gray-900 lg:text-base">
-                    {multisig.threshold}-of-{multisig.totalKeys} Multisig Active
+                    {primaryWallet?.threshold ?? 0}-of-{primaryWallet?.total_keys ?? 0} Multisig Active
                   </p>
                   <p className="text-xs text-gray-500 lg:text-sm">
                     Last rotation: {vaultSettings?.lastRotationDate
@@ -267,9 +273,9 @@ export default function VaultPage() {
                 </div>
               </div>
               <div className="space-y-2 mb-4">
-                {multisig.keys.slice(0, 3).map((key) => (
-                  <div key={key.id} className="flex justify-between text-sm">
-                    <span className="text-gray-600">{key.holder}</span>
+                {keyholders.slice(0, 3).map((kh) => (
+                  <div key={kh.id} className="flex justify-between text-sm">
+                    <span className="text-gray-600">{kh.name}</span>
                     <span className="text-green-600">✓ Active</span>
                   </div>
                 ))}

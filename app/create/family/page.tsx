@@ -11,10 +11,10 @@ export default function CreateFamilyPage() {
   const [name, setName] = useState('')
 
   useEffect(() => {
-    if (setup.familyName && setup.familyName !== 'Chen Family') {
-      setName(setup.familyName)
+    if (setup.family_name && setup.family_name !== 'Chen Family') {
+      setName(setup.family_name)
     }
-  }, [setup.familyName])
+  }, [setup.family_name])
 
   const handleNext = () => {
     if (!name.trim()) return
@@ -25,7 +25,7 @@ export default function CreateFamilyPage() {
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS · create · 1/7</div>
+        <div className="nexus-title">KEEP NEXUS · create · 1/7 · K key governance</div>
 
         <div className="nexus-divider" />
 

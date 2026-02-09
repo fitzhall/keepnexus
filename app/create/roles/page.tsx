@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
-import { Key, KeyRole, StorageType } from '@/lib/risk-simulator/types'
+import type { KeyRole, StorageType, KeyHolder } from '@/lib/keep-core/data-model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -35,7 +35,7 @@ interface RoleEntry {
 
 export default function CreateRolesPage() {
   const router = useRouter()
-  const { setup, updateMultisig } = useFamilySetup()
+  const { setup, loadFromFile } = useFamilySetup()
 
   const [roles, setRoles] = useState<RoleEntry[]>(() =>
     STANDARD_ROLES.map(r => ({
@@ -46,15 +46,14 @@ export default function CreateRolesPage() {
   )
 
   useEffect(() => {
-    if (setup.multisig.keys?.length > 0) {
-      const existingKeys = setup.multisig.keys
+    if (setup.keyholders?.length > 0) {
       setRoles(prev =>
         prev.map((role, idx) => {
-          const existing = existingKeys[idx]
+          const existing = setup.keyholders[idx]
           if (existing) {
             return {
               ...role,
-              name: existing.holder || '',
+              name: existing.name || '',
               device: existing.location || '—',
             }
           }
@@ -62,7 +61,7 @@ export default function CreateRolesPage() {
         })
       )
     }
-  }, [setup.multisig.keys])
+  }, [setup.keyholders])
 
   const updateRole = (index: number, field: 'name' | 'device', value: string) => {
     const updated = [...roles]
@@ -71,31 +70,30 @@ export default function CreateRolesPage() {
   }
 
   const handleNext = () => {
-    const keys: Key[] = roles
+    const keyholders: KeyHolder[] = roles
       .filter(r => r.name.trim() || r.device !== '—')
       .map(r => {
         const deviceOption = DEVICE_OPTIONS.find(d => d.label === r.device)
         return {
           id: r.id,
-          holder: r.name.trim() || r.label,
+          name: r.name.trim() || r.label,
           role: r.role,
-          type: 'full' as const,
-          storage: deviceOption?.value === '—' ? 'paper' : (deviceOption?.value || 'hardware-wallet'),
+          jurisdiction: '',
+          storage_type: (deviceOption?.value === '—' ? 'paper' : (deviceOption?.value || 'hardware-wallet')) as StorageType,
           location: r.device === '—' ? '' : r.device,
+          key_age_days: 0,
+          is_sharded: false,
         }
       })
 
-    updateMultisig({
-      ...setup.multisig,
-      keys,
-    })
+    loadFromFile({ ...setup, keyholders })
     router.push('/create/heirs')
   }
 
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS · create · 3/7</div>
+        <div className="nexus-title">KEEP NEXUS · create · 3/7 · K key governance</div>
 
         <div className="nexus-divider" />
 

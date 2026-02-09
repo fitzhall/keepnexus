@@ -26,8 +26,8 @@ import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 export default function TrustPage() {
   // Use context for trust info
-  const { setup, updateTrust } = useFamilySetup()
-  const trustInfo = setup.trust
+  const { setup, updateLegal } = useFamilySetup()
+  const trustInfo = setup.legal
   const [documents, setDocuments] = useState<StoredDocument[]>([])
   const [isDragging, setIsDragging] = useState(false)
   const [isEncrypting, setIsEncrypting] = useState(false)
@@ -326,19 +326,19 @@ export default function TrustPage() {
             <div className="flex items-start justify-between mb-4">
               <div className="flex-1">
                 <h2 className="text-lg font-semibold text-gray-900 mb-2">
-                  {trustInfo.trustName || 'Living Trust'}
+                  {trustInfo.trust_name || 'Living Trust'}
                 </h2>
-                {trustInfo.trusteeNames && trustInfo.trusteeNames.length > 0 && (
+                {trustInfo.trustee_names && trustInfo.trustee_names.length > 0 && (
                   <div className="space-y-1">
                     <p className="text-sm text-gray-600">Trustees:</p>
-                    {trustInfo.trusteeNames.map((name, index) => (
+                    {trustInfo.trustee_names.map((name, index) => (
                       <p key={index} className="text-sm text-gray-900">• {name}</p>
                     ))}
                   </div>
                 )}
-                {trustInfo.lastReviewed && (
+                {trustInfo.last_review && (
                   <p className="text-xs text-gray-500 mt-3">
-                    Last reviewed: {new Date(trustInfo.lastReviewed).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                    Last reviewed: {new Date(trustInfo.last_review).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
                   </p>
                 )}
               </div>
@@ -532,9 +532,9 @@ export default function TrustPage() {
           <div className="px-6 py-6 border-t border-gray-200 lg:border-0 lg:px-0">
             <button
               onClick={() => {
-                updateTrust({
+                updateLegal({
                   ...trustInfo,
-                  lastReviewed: new Date()
+                  last_review: new Date().toISOString()
                 })
                 setSuccess('Annual review date updated successfully')
               }}

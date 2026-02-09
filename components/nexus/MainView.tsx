@@ -2,91 +2,87 @@
 
 import { useState } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
+import { exportToJSON, FILE_EXTENSION } from '@/lib/keep-core/little-shard'
+import { calculatePillarReport } from '@/lib/keep-core/keep-score-v2'
+import { PillarHeader } from './PillarHeader'
 import Link from 'next/link'
 
 export function MainView() {
   const { setup } = useFamilySetup()
-  const { familyName, multisig, heirs, trust, drillSettings, thapHash, thapHistory } = setup
   const [copied, setCopied] = useState(false)
 
-  // If no shard exists (check for actual data)
-  if (!familyName || familyName === '') {
+  if (!setup.family_name || setup.family_name === '') {
     return <EmptyState />
   }
 
-  // Format heirs display
-  const heirsDisplay = heirs?.length > 0
-    ? heirs.map(h => `${h.name} ${h.allocation}%`).join(' · ')
+  const report = calculatePillarReport(setup)
+
+  // Heirs display
+  const heirsDisplay = setup.heirs?.length > 0
+    ? setup.heirs.map(h => `${h.name} ${h.allocation}%`).join(' · ')
     : 'none'
 
-  // Format vault display (fallback for when vaults[] is empty)
-  const vaultParts: string[] = []
-  if (multisig?.threshold && multisig?.totalKeys) {
-    vaultParts.push(`${multisig.threshold}-of-${multisig.totalKeys}`)
-  }
-  if (multisig?.platform) vaultParts.push(multisig.platform)
-  if (multisig?.keys?.length) vaultParts.push(`${multisig.keys.length} roles assigned`)
-  const vaultDisplay = vaultParts.length > 0 ? vaultParts.join(' · ') : 'not configured'
-
-  // Format legal display
+  // Legal display
   const legalParts: string[] = []
-  if (trust?.jurisdiction) legalParts.push(trust.jurisdiction)
-  if (trust?.trustName) legalParts.push('trust ✓')
-  if (trust?.rufadaaFiled) legalParts.push('RUFADAA ✓')
-  if (trust?.bitcoinInDocs) legalParts.push('BTC in docs ✓')
+  if (setup.legal.jurisdiction) legalParts.push(setup.legal.jurisdiction)
+  if (setup.legal.has_trust) legalParts.push('trust ✓')
+  if (setup.legal.rufadaa_filed) legalParts.push('RUFADAA ✓')
+  if (setup.legal.bitcoin_in_docs) legalParts.push('BTC in docs ✓')
   const legalDisplay = legalParts.length > 0 ? legalParts.join(' · ') : 'not configured'
 
-  // Format last check display
-  const lastCheckDisplay = drillSettings?.lastDrillDate
-    ? `${drillSettings.lastDrillDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · all signers verified`
+  // Last check display
+  const lastCheckDisplay = setup.continuity.last_drill
+    ? `${new Date(setup.continuity.last_drill).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · all signers verified`
     : 'no check-ins recorded'
 
-  // Determine status (simplified logic)
   const status = 'healthy'
 
-  // THAP display helpers
-  const thapDisplay = thapHash
-    ? thapHash.slice(0, 16) + '...'
+  // THAP display
+  const thapDisplay = setup.thap.current_hash
+    ? setup.thap.current_hash.slice(0, 16) + '...'
     : 'calculating...'
 
-  const lastChanged = thapHistory.length > 0
-    ? new Date(thapHistory[thapHistory.length - 1].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : thapHash ? 'current' : '—'
+  const lastChanged = setup.thap.history.length > 0
+    ? new Date(setup.thap.history[setup.thap.history.length - 1].timestamp).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : setup.thap.current_hash ? 'current' : '—'
 
   const handleCopyHash = () => {
-    if (!thapHash) return
-    navigator.clipboard.writeText(thapHash).then(() => {
+    if (!setup.thap.current_hash) return
+    navigator.clipboard.writeText(setup.thap.current_hash).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })
   }
 
   const handleExport = () => {
-    const dataStr = JSON.stringify(setup, null, 2)
-    const dataBlob = new Blob([dataStr], { type: 'application/json' })
-    const url = URL.createObjectURL(dataBlob)
+    const json = exportToJSON(setup)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     const date = new Date().toISOString().split('T')[0]
     link.href = url
-    link.download = `${familyName.toLowerCase().replace(/\s+/g, '-')}-${date}.keepnexus`
+    link.download = `${setup.family_name.toLowerCase().replace(/\s+/g, '-')}-${date}${FILE_EXTENSION}`
     link.click()
     URL.revokeObjectURL(url)
   }
 
+  // Professionals display
+  const proEntries: { role: string; name: string }[] = []
+  if (setup.professionals.advisor?.name) proEntries.push({ role: 'advisor', name: setup.professionals.advisor.name })
+  if (setup.professionals.attorney?.name) proEntries.push({ role: 'attorney', name: setup.professionals.attorney.name })
+  if (setup.professionals.cpa?.name) proEntries.push({ role: 'CPA', name: setup.professionals.cpa.name })
+
   return (
     <main className="nexus">
       <div className="nexus-container">
-        {/* Header */}
         <div className="nexus-title">KEEP NEXUS</div>
-        <div className="nexus-family">{familyName} Reserve</div>
+        <div className="nexus-family">{setup.family_name} Reserve</div>
 
         <div className="nexus-divider" />
 
-        {/* Hero - BTC Amount */}
         <div className="nexus-hero-btc">₿ —</div>
         <div className="nexus-hero-fiat">connect wallet to view balance</div>
 
-        {/* Status */}
         <div className="nexus-status">
           <span className={`nexus-status-dot ${status}`} />
           <span className="text-sm text-zinc-400">{status}</span>
@@ -94,25 +90,30 @@ export function MainView() {
 
         <div className="nexus-divider" />
 
-        {/* Status Rows */}
-        <div className="space-y-2">
-          {setup.vaults.length > 0 ? (
-            setup.vaults.map(v => (
-              <div key={v.id} className="nexus-row">
-                <span className="nexus-row-label">{v.label}</span>
+        {/* ── K : key governance ── */}
+        <PillarHeader letter="K" label="key governance" items={report.K.items} />
+        <div className="space-y-2 pl-2">
+          {setup.wallets.length > 0 ? (
+            setup.wallets.map(w => (
+              <div key={w.id} className="nexus-row">
+                <span className="nexus-row-label">{w.label}</span>
                 <span className="nexus-row-value">
-                  {v.multisig.threshold}-of-{v.multisig.totalKeys}
-                  {v.multisig.platform ? ` · ${v.multisig.platform}` : ''}
-                  {v.multisig.keys?.length ? ` · ${v.multisig.keys.length} roles` : ''}
+                  {w.threshold}-of-{w.total_keys}
+                  {w.platform ? ` · ${w.platform}` : ''}
                 </span>
               </div>
             ))
           ) : (
             <div className="nexus-row">
               <span className="nexus-row-label">vault</span>
-              <span className="nexus-row-value">{vaultDisplay}</span>
+              <span className="nexus-row-value">not configured</span>
             </div>
           )}
+        </div>
+
+        {/* ── E : estate integration ── */}
+        <PillarHeader letter="E" label="estate integration" items={report.E_estate.items} />
+        <div className="space-y-2 pl-2">
           <div className="nexus-row">
             <span className="nexus-row-label">heirs</span>
             <span className="nexus-row-value">{heirsDisplay}</span>
@@ -129,10 +130,33 @@ export function MainView() {
                 : 'not configured'}
             </span>
           </div>
+        </div>
+
+        {/* ── E : ensured continuity ── */}
+        <PillarHeader letter="E" label="ensured continuity" items={report.E_continuity.items} />
+        <div className="space-y-2 pl-2">
           <div className="nexus-row">
             <span className="nexus-row-label">last check</span>
             <span className="nexus-row-value">{lastCheckDisplay}</span>
           </div>
+        </div>
+
+        {/* ── P : professional stewardship ── */}
+        <PillarHeader letter="P" label="professional stewardship" items={report.P.items} />
+        <div className="space-y-2 pl-2">
+          {proEntries.length > 0 ? (
+            proEntries.map((p, i) => (
+              <div key={i} className="nexus-row">
+                <span className="nexus-row-label">{p.role}</span>
+                <span className="nexus-row-value">{p.name}</span>
+              </div>
+            ))
+          ) : (
+            <div className="nexus-row">
+              <span className="nexus-row-label">&nbsp;</span>
+              <span className="nexus-row-value text-zinc-600">no professionals configured</span>
+            </div>
+          )}
         </div>
 
         <div className="nexus-divider" />
@@ -153,11 +177,11 @@ export function MainView() {
             <span className="nexus-row-label">changed</span>
             <span className="nexus-row-value">{lastChanged}</span>
           </div>
-          {thapHistory.length > 0 && (
+          {setup.thap.history.length > 0 && (
             <div className="nexus-row">
               <span className="nexus-row-label">prior</span>
               <span className="nexus-row-value text-zinc-600 font-mono text-xs">
-                {thapHistory.length} hash{thapHistory.length !== 1 ? 'es' : ''}
+                {setup.thap.history.length} hash{setup.thap.history.length !== 1 ? 'es' : ''}
               </span>
             </div>
           )}
@@ -165,20 +189,20 @@ export function MainView() {
 
         <div className="nexus-divider" />
 
-        {/* Audit Trail + Trail Count */}
         <div className="nexus-row">
           <span className="nexus-row-label">audit</span>
           <span className="nexus-row-value text-zinc-600">
-            {setup.auditTrail?.length || 0} entries
+            {setup.event_log?.length || 0} entries
           </span>
         </div>
 
         <div className="nexus-divider" />
 
-        {/* Actions */}
         <div className="nexus-actions">
           <Link href="/update" className="nexus-btn">[update]</Link>
+          <Link href="/readiness" className="nexus-btn">[readiness]</Link>
           <Link href="/share" className="nexus-btn">[share]</Link>
+          <Link href="/proof" className="nexus-btn">[proof]</Link>
           <button className="nexus-btn" onClick={handleExport}>[export]</button>
         </div>
       </div>

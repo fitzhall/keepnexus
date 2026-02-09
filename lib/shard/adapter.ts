@@ -20,7 +20,8 @@ import type {
   AuditEntry,
 } from '../risk-simulator/file-export'
 import type { MultisigSetup, Key, KeyRole } from '../risk-simulator/types'
-import type { GovernanceRule, Heir, TrustInfo } from '../context/FamilySetup'
+import type { GovernanceRule, Heir } from '../context/FamilySetup'
+import type { TrustInfo } from '../risk-simulator/file-export'
 
 // ============================================================================
 // SHARD V2.1.0 TYPES (Copied from KEEP SYS for standalone operation)

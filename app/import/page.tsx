@@ -20,17 +20,9 @@ export default function ImportPage() {
         const text = e.target?.result as string
         const data = JSON.parse(text)
 
-        // Validate required fields
-        if (!data.familyName || typeof data.familyName !== 'string') {
-          setError('Invalid file: missing familyName')
-          return
-        }
-        if (!data.multisig || typeof data.multisig !== 'object') {
-          setError('Invalid file: missing multisig configuration')
-          return
-        }
-        if (!Array.isArray(data.heirs)) {
-          setError('Invalid file: missing heirs array')
+        // Accept v2 format (family_name) or v1 format (familyName)
+        if (!data.family_name && !data.familyName) {
+          setError('Invalid file: missing family name')
           return
         }
 
@@ -69,7 +61,7 @@ export default function ImportPage() {
     <main className="nexus">
       <div className="nexus-container">
         <div className="nexus-title">KEEP NEXUS</div>
-        <div className="nexus-family">Import Shard</div>
+        <div className="nexus-family">Import Keep File</div>
 
         <div className="nexus-divider" />
 
@@ -83,7 +75,7 @@ export default function ImportPage() {
               : 'border-zinc-700 text-zinc-500 hover:border-zinc-500'
           }`}
         >
-          <p className="text-sm mb-4">Drop .keepnexus file here</p>
+          <p className="text-sm mb-4">Drop .keep, .keepnexus, or .shard file here</p>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="nexus-btn"
@@ -93,7 +85,7 @@ export default function ImportPage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept=".keepnexus,.json"
+            accept=".keep,.keepnexus,.shard,.json"
             onChange={handleFileSelect}
             className="hidden"
           />

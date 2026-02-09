@@ -1,48 +1,33 @@
 /**
- * THAP (Trust Hash Amendment Protocol) - Hash Calculator
- * Produces a deterministic SHA-256 hash of canonical family setup fields.
+ * THAP (Trust Hash Amendment Protocol) - Hash Calculator v2.0
+ * Produces a deterministic SHA-256 hash of canonical LittleShardFile fields.
  * Used for drift detection and change tracking.
  */
 
-import type { FamilySetupData } from '@/lib/context/FamilySetup'
+import type { LittleShardFile } from '@/lib/keep-core/data-model'
 
 /**
  * Extract canonical fields and produce a deterministic SHA-256 hex string.
  * Uses Web Crypto API (available in all modern browsers).
  */
-export async function calculateThapHash(setup: FamilySetupData): Promise<string> {
-  // Canonical fields only — order matters for determinism
+export async function calculateThapHash(shard: LittleShardFile): Promise<string> {
   const canonical = {
-    familyName: setup.familyName,
-    vaults: setup.vaults.map(v => ({
-      id: v.id,
-      label: v.label,
-      multisig: {
-        threshold: v.multisig.threshold,
-        totalKeys: v.multisig.totalKeys,
-        keys: v.multisig.keys.map(k => ({
-          id: k.id,
-          holder: k.holder,
-          role: k.role,
-          storage: k.storage,
-          location: k.location,
-        })),
-        platform: v.multisig.platform,
-      },
+    familyName: shard.family_name,
+    wallets: shard.wallets.map(w => ({
+      id: w.id,
+      label: w.label,
+      threshold: w.threshold,
+      total_keys: w.total_keys,
+      platform: w.platform,
     })),
-    multisig: {
-      threshold: setup.multisig.threshold,
-      totalKeys: setup.multisig.totalKeys,
-      keys: setup.multisig.keys.map(k => ({
-        id: k.id,
-        holder: k.holder,
-        role: k.role,
-        storage: k.storage,
-        location: k.location,
-      })),
-      platform: setup.multisig.platform,
-    },
-    heirs: setup.heirs.map(h => ({
+    keyholders: shard.keyholders.map(k => ({
+      id: k.id,
+      name: k.name,
+      role: k.role,
+      storage_type: k.storage_type,
+      location: k.location,
+    })),
+    heirs: shard.heirs.map(h => ({
       id: h.id,
       name: h.name,
       relationship: h.relationship,
@@ -50,18 +35,18 @@ export async function calculateThapHash(setup: FamilySetupData): Promise<string>
       isKeyHolder: h.isKeyHolder,
     })),
     charter: {
-      mission: setup.charter.mission,
-      principles: setup.charter.principles,
-      reviewFrequency: setup.charter.reviewFrequency,
+      mission: shard.charter.mission,
+      principles: shard.charter.principles,
+      reviewFrequency: shard.charter.reviewFrequency,
     },
-    trust: {
-      trustName: setup.trust.trustName,
-      trusteeNames: setup.trust.trusteeNames,
-      jurisdiction: setup.trust.jurisdiction,
-      bitcoinInDocs: setup.trust.bitcoinInDocs,
-      rufadaaFiled: setup.trust.rufadaaFiled,
+    legal: {
+      trust_name: shard.legal.trust_name,
+      jurisdiction: shard.legal.jurisdiction,
+      bitcoin_in_docs: shard.legal.bitcoin_in_docs,
+      rufadaa_filed: shard.legal.rufadaa_filed,
+      trustee_names: shard.legal.trustee_names,
     },
-    governanceRules: setup.governanceRules.map(r => ({
+    governance_rules: shard.governance_rules.map(r => ({
       id: r.id,
       who: r.who,
       canDo: r.canDo,
@@ -69,21 +54,16 @@ export async function calculateThapHash(setup: FamilySetupData): Promise<string>
       condition: r.condition,
       status: r.status,
     })),
-    roles: {
-      advisorName: setup.captainSettings?.advisorName || '',
-      advisorFirm: setup.captainSettings?.advisorFirm || '',
-      advisorEmail: setup.captainSettings?.advisorEmail || '',
-      attorney: setup.captainSettings?.professionalNetwork?.attorney || '',
-      cpa: setup.captainSettings?.professionalNetwork?.cpa || '',
-      custodian: setup.captainSettings?.professionalNetwork?.custodian || '',
+    professionals: {
+      advisor: shard.professionals.advisor?.name || '',
+      advisorFirm: shard.professionals.advisor?.firm || '',
+      advisorEmail: shard.professionals.advisor?.email || '',
+      attorney: shard.professionals.attorney?.name || '',
+      cpa: shard.professionals.cpa?.name || '',
     },
-    drillSettings: {
-      frequency: setup.drillSettings?.frequency || '',
-    },
-    taxSettings: {
-      cpaName: setup.taxSettings?.cpaName || '',
-      cpaEmail: setup.taxSettings?.cpaEmail || '',
-      reportingFrequency: setup.taxSettings?.reportingFrequency || '',
+    continuity: {
+      drill_frequency: shard.continuity.drill_frequency,
+      checkin_frequency: shard.continuity.checkin_frequency,
     },
   }
 

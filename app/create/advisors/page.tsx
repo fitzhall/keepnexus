@@ -2,11 +2,12 @@
 
 import { useState, useEffect } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
+import type { ProfessionalNetwork, ProfessionalContact } from '@/lib/keep-core/data-model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
-interface Advisor {
-  role: string
+interface AdvisorRow {
+  role: 'attorney' | 'cpa' | 'advisor'
   name: string
   firm: string
   email: string
@@ -14,77 +15,74 @@ interface Advisor {
 
 export default function CreateAdvisorsPage() {
   const router = useRouter()
-  const { setup, updateCaptainSettings, updateTaxSettings } = useFamilySetup()
+  const { setup, updateProfessionals } = useFamilySetup()
 
-  const [advisors, setAdvisors] = useState<Advisor[]>([
+  const [advisors, setAdvisors] = useState<AdvisorRow[]>([
     { role: 'attorney', name: '', firm: '', email: '' },
     { role: 'cpa', name: '', firm: '', email: '' },
     { role: 'advisor', name: '', firm: '', email: '' },
   ])
 
   useEffect(() => {
-    if (setup.captainSettings?.advisorName) {
+    if (setup.professionals) {
+      const p = setup.professionals
       setAdvisors([
         {
           role: 'attorney',
-          name: '',
-          firm: setup.captainSettings.professionalNetwork?.attorney || '',
-          email: '',
+          name: p.attorney?.name || '',
+          firm: p.attorney?.firm || '',
+          email: p.attorney?.email || '',
         },
         {
           role: 'cpa',
-          name: setup.taxSettings?.cpaName || '',
-          firm: '',
-          email: setup.taxSettings?.cpaEmail || '',
+          name: p.cpa?.name || '',
+          firm: p.cpa?.firm || '',
+          email: p.cpa?.email || '',
         },
         {
           role: 'advisor',
-          name: setup.captainSettings.advisorName || '',
-          firm: setup.captainSettings.advisorFirm || '',
-          email: setup.captainSettings.advisorEmail || '',
+          name: p.advisor?.name || '',
+          firm: p.advisor?.firm || '',
+          email: p.advisor?.email || '',
         },
       ])
     }
-  }, [setup.captainSettings, setup.taxSettings])
+  }, [setup.professionals])
 
-  const updateAdvisor = (index: number, field: keyof Advisor, value: string) => {
+  const updateAdvisor = (index: number, field: keyof AdvisorRow, value: string) => {
     const updated = [...advisors]
     updated[index] = { ...updated[index], [field]: value }
     setAdvisors(updated)
   }
 
+  const toContact = (row: AdvisorRow): ProfessionalContact | undefined => {
+    if (!row.name && !row.firm && !row.email) return undefined
+    return {
+      name: row.name,
+      firm: row.firm || undefined,
+      email: row.email || undefined,
+    }
+  }
+
   const handleNext = () => {
-    const attorney = advisors.find(a => a.role === 'attorney')
-    const cpa = advisors.find(a => a.role === 'cpa')
-    const advisor = advisors.find(a => a.role === 'advisor')
+    const attorney = advisors.find(a => a.role === 'attorney')!
+    const cpa = advisors.find(a => a.role === 'cpa')!
+    const advisor = advisors.find(a => a.role === 'advisor')!
 
-    updateCaptainSettings({
-      ...setup.captainSettings,
-      advisorName: advisor?.name || '',
-      advisorEmail: advisor?.email || '',
-      advisorFirm: advisor?.firm || '',
-      professionalNetwork: {
-        attorney: attorney?.firm || attorney?.name || '',
-        cpa: cpa?.firm || cpa?.name || '',
-        custodian: setup.captainSettings?.professionalNetwork?.custodian || '',
-      },
-    })
-
-    if (cpa?.name || cpa?.email) {
-      updateTaxSettings({
-        ...setup.taxSettings,
-        cpaName: cpa.name || cpa.firm || '',
-        cpaEmail: cpa.email || '',
-      })
+    const professionals: ProfessionalNetwork = {
+      attorney: toContact(attorney),
+      cpa: toContact(cpa),
+      advisor: toContact(advisor),
     }
 
+    updateProfessionals(professionals)
     router.push('/create/policies')
   }
 
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS · create · 6/7</div>
+        <div className="nexus-title">KEEP NEXUS · create · 6/7 · P professional stewardship</div>
 
         <div className="nexus-divider" />
 

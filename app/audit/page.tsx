@@ -3,8 +3,8 @@
 import { useFamilySetup } from '@/lib/context/FamilySetup'
 import Link from 'next/link'
 
-function formatTimestamp(date: Date): string {
-  const d = date instanceof Date ? date : new Date(date)
+function formatTimestamp(date: string): string {
+  const d = new Date(date)
   return d.toLocaleString('en-US', {
     year: 'numeric',
     month: '2-digit',
@@ -17,7 +17,7 @@ function formatTimestamp(date: Date): string {
 
 export default function AuditPage() {
   const { setup } = useFamilySetup()
-  const entries = [...(setup.auditTrail || [])].reverse()
+  const entries = [...(setup.event_log || [])].reverse()
 
   return (
     <main className="nexus">
@@ -34,12 +34,12 @@ export default function AuditPage() {
               <div key={entry.id} className="text-sm font-mono">
                 <div className="flex items-baseline gap-2 flex-wrap">
                   <span className="text-zinc-500">{formatTimestamp(entry.timestamp)}</span>
-                  <span className="text-amber-500/80">{entry.action}</span>
+                  <span className="text-amber-500/80">{entry.event_type}</span>
                 </div>
-                <div className="text-zinc-400 mt-0.5 pl-1">{entry.details}</div>
-                {entry.field && (
+                <div className="text-zinc-400 mt-0.5 pl-1">{entry.description}</div>
+                {entry.metadata && entry.metadata.field && (
                   <div className="text-zinc-600 text-xs mt-0.5 pl-1">
-                    {entry.field}: {entry.oldValue ?? '(empty)'} &rarr; {entry.newValue ?? '(empty)'}
+                    {entry.metadata.field}: {entry.metadata.oldValue ?? '(empty)'} &rarr; {entry.metadata.newValue ?? '(empty)'}
                   </div>
                 )}
               </div>

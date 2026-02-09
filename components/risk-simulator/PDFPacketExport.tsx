@@ -76,7 +76,7 @@ export function PDFPacketExport({ setup, results, scenarios, resilienceScore }: 
       results,
       scenarios,
       resilienceScore,
-      governanceRules: contextSetup.governanceRules
+      governanceRules: contextSetup.governance_rules
     }
 
     switch (type) {

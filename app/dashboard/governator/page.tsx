@@ -53,7 +53,7 @@ const TEMPLATES = [
 export default function GovernatorPage() {
   // Use shared context - governance rules now persist across app and in .keepnexus files
   const { setup, updateGovernanceRules } = useFamilySetup()
-  const [rules, setRules] = useState<GovernanceRule[]>(setup.governanceRules)
+  const [rules, setRules] = useState<GovernanceRule[]>(setup.governance_rules)
   const [showCreate, setShowCreate] = useState(false)
   const [selectedTemplate, setSelectedTemplate] = useState<typeof TEMPLATES[0] | null>(null)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
@@ -67,15 +67,15 @@ export default function GovernatorPage() {
 
   // Sync with context when it changes (e.g., from file import)
   useEffect(() => {
-    setRules(setup.governanceRules)
-  }, [setup.governanceRules])
+    setRules(setup.governance_rules)
+  }, [setup.governance_rules])
 
   // Sync local changes back to context
   useEffect(() => {
-    if (JSON.stringify(rules) !== JSON.stringify(setup.governanceRules)) {
+    if (JSON.stringify(rules) !== JSON.stringify(setup.governance_rules)) {
       updateGovernanceRules(rules)
     }
-  }, [rules, setup.governanceRules, updateGovernanceRules])
+  }, [rules, setup.governance_rules, updateGovernanceRules])
 
   const createRule = () => {
     if (!newRule.who || !newRule.canDo || !newRule.when || !newRule.condition) return
@@ -142,7 +142,7 @@ export default function GovernatorPage() {
                 <div>
                   <h1 className="text-2xl font-semibold text-gray-900">The Governator</h1>
                   <p className="text-sm text-gray-600 mt-1">
-                    {rules.filter(r => r.status === 'active').length} active • {new Set(rules.map(r => r.who)).size} beneficiaries • {rules.reduce((sum, r) => sum + r.executions, 0)} executions
+                    {rules.filter(r => r.status === 'active').length} active • {new Set(rules.map(r => r.who)).size} beneficiaries • {rules.reduce((sum, r) => sum + (r.executions ?? 0), 0)} executions
                   </p>
                 </div>
               </div>
@@ -213,8 +213,8 @@ export default function GovernatorPage() {
                             {rule.who}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {rule.risk} risk • {rule.executions}x
-                            {rule.lastExecuted && ` • ${rule.lastExecuted.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                            {rule.risk} risk • {rule.executions ?? 0}x
+                            {rule.lastExecuted && ` • ${new Date(rule.lastExecuted).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
                           </div>
                         </td>
 

@@ -10,7 +10,7 @@ const OUTCOMES = ['pass', 'fail'] as const
 
 export default function RecordDrillPage() {
   const router = useRouter()
-  const { addDrillRecord } = useFamilySetup()
+  const { setup, loadFromFile } = useFamilySetup()
 
   const today = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(today)
@@ -20,15 +20,16 @@ export default function RecordDrillPage() {
   const [notes, setNotes] = useState('')
 
   const handleSave = () => {
-    addDrillRecord({
+    const newDrill = {
       id: `drill-${Date.now()}`,
-      date: new Date(date),
+      timestamp: new Date(date).toISOString(),
+      type: 'recovery' as const,
       participants: participants.split(',').map((p) => p.trim()).filter(Boolean),
-      result: outcome === 'pass' ? 'passed' : 'failed',
+      success: outcome === 'pass',
       notes: `[${drillType}] ${notes}`.trim(),
-      duration: 0,
-      recoveryTime: 0,
-    })
+      duration_minutes: 0,
+    }
+    loadFromFile({ ...setup, drills: [...setup.drills, newDrill] })
     router.push('/dashboard')
   }
 

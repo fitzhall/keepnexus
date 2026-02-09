@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 
 export default function RecordCheckinPage() {
   const router = useRouter()
-  const { addScheduleEvent } = useFamilySetup()
+  const { setup, loadFromFile, addEventLogEntry } = useFamilySetup()
 
   const today = new Date().toISOString().split('T')[0]
   const [date, setDate] = useState(today)
@@ -16,14 +16,18 @@ export default function RecordCheckinPage() {
   const [notes, setNotes] = useState('')
 
   const handleSave = () => {
-    addScheduleEvent({
-      id: `checkin-${Date.now()}`,
-      title: 'Signer Check-in',
-      description: `Verified by ${verifiedBy}. Signers: ${signersConfirmed}. ${notes}`.trim(),
-      date,
-      type: 'review',
-      completed: true,
+    loadFromFile({
+      ...setup,
+      continuity: {
+        ...setup.continuity,
+        last_checkin: new Date().toISOString(),
+      },
     })
+    addEventLogEntry(
+      'checkin.recorded',
+      `Signer Check-in: Verified by ${verifiedBy}. Signers: ${signersConfirmed}. ${notes}`.trim(),
+      { date, verifiedBy, signersConfirmed }
+    )
     router.push('/dashboard')
   }
 

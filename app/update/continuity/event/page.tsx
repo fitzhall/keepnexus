@@ -17,7 +17,7 @@ const EVENT_TYPES = [
 
 export default function RecordLifeEventPage() {
   const router = useRouter()
-  const { addScheduleEvent } = useFamilySetup()
+  const { addEventLogEntry } = useFamilySetup()
 
   const today = new Date().toISOString().split('T')[0]
   const [eventType, setEventType] = useState<string>('marriage')
@@ -26,14 +26,11 @@ export default function RecordLifeEventPage() {
   const [actionItems, setActionItems] = useState('')
 
   const handleSave = () => {
-    addScheduleEvent({
-      id: `event-${Date.now()}`,
-      title: `Life Event: ${eventType}`,
-      description: `${description}\n\nAction items: ${actionItems}`.trim(),
-      date,
-      type: 'review',
-      completed: false,
-    })
+    addEventLogEntry(
+      'life_event',
+      `Life Event: ${eventType} — ${description}\n\nAction items: ${actionItems}`.trim(),
+      { date, eventType, actionItems }
+    )
     router.push('/dashboard')
   }
 

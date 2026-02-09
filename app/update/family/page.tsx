@@ -12,8 +12,8 @@ export default function UpdateFamilyPage() {
   const [name, setName] = useState('')
 
   useEffect(() => {
-    setName(setup.familyName || '')
-  }, [setup.familyName])
+    setName(setup.family_name || '')
+  }, [setup.family_name])
 
   const handleSave = () => {
     if (name.trim()) {

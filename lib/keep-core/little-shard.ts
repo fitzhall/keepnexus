@@ -1,15 +1,13 @@
 /**
- * Little Shard™ File Handler
- * Manages creation, loading, saving, and encryption of KEEP data files
+ * Little Shard™ File Handler v2.0
+ * Manages creation, loading, saving, and encryption of .keep files
  * Everything happens client-side for complete data sovereignty
  */
 
 import {
   LittleShardFile,
   ValidationResult,
-  FileMetadata,
   EventLogEntry,
-  KEEPScore,
   Wallet,
   KeyHolder
 } from './data-model';
@@ -18,31 +16,69 @@ import {
 // Constants
 // ============================================================================
 
-export const LITTLE_SHARD_VERSION = '1.0.0';
-export const FILE_EXTENSION = '.shard';
+export const LITTLE_SHARD_VERSION = '2.0.0';
+export const FILE_EXTENSION = '.keep';
 export const ENCRYPTION_ALGORITHM = 'AES-GCM';
-export const DEFAULT_ITERATIONS = 100000; // For key derivation
+export const DEFAULT_ITERATIONS = 100000;
 
 // ============================================================================
 // File Creation & Initialization
 // ============================================================================
 
-/**
- * Create a new Little Shard file with default structure
- */
 export function createNewShardFile(familyName: string): LittleShardFile {
   const now = new Date().toISOString();
 
   return {
-    // Metadata
     version: LITTLE_SHARD_VERSION,
     created_at: now,
     last_modified: now,
-
-    // Family info
     family_name: familyName,
 
-    // Initial KEEP Score (starts low)
+    // K — Key Governance
+    wallets: [],
+    keyholders: [],
+    governance_rules: [],
+    redundancy: {
+      device_count: 0,
+      location_count: 0,
+      person_count: 0,
+      geographic_distribution: [],
+      passes_3_3_3_rule: false
+    },
+
+    // E — Estate Integration
+    heirs: [],
+    charter: {
+      mission: '',
+      principles: [],
+      reviewFrequency: 'annual',
+    },
+    legal: {
+      has_will: false,
+      has_trust: false,
+      has_letter_of_instruction: false,
+      last_review: now,
+      next_review: addDays(now, 365),
+    },
+
+    // E — Ensured Continuity
+    drills: [],
+    continuity: {
+      checkin_frequency: 'quarterly',
+      drill_frequency: 'quarterly',
+    },
+    rotations: [],
+
+    // P — Professional Stewardship
+    professionals: {},
+    education: {
+      heirs_trained: false,
+      last_training: now,
+      next_review: addDays(now, 90),
+      trained_heirs: [],
+    },
+
+    // Integrity
     keep_score: {
       value: 25,
       calculated_at: now,
@@ -51,122 +87,228 @@ export function createNewShardFile(familyName: string): LittleShardFile {
         redundancy: 20,
         liveness: 25,
         legal_readiness: 20,
-        education: 30
+        education: 30,
       },
       trend: 'stable',
       recommendations: [
         'Add at least 3 key holders to reach minimum redundancy',
         'Configure geographic distribution across multiple locations',
-        'Schedule your first recovery drill'
-      ]
+        'Schedule your first recovery drill',
+      ],
     },
-
-    // Demo wallet and keyholders for testing
-    wallets: [{
-      id: 'wallet1',
-      label: 'Family Vault',
-      descriptor: 'wsh(sortedmulti(2,xpub1...,xpub2...,xpub3...))',
-      threshold: 2,
-      total_keys: 3,
-      created_at: now
-    }],
-    keyholders: [
-      {
-        id: 'kh1',
-        name: 'Alice Chen',
-        role: 'primary',
-        jurisdiction: 'California, USA',
-        location: 'San Francisco',
-        storage_type: 'hardware-wallet',
-        key_age_days: 0,
-        is_sharded: false,
-        contact: {
-          email: 'alice@example.com',
-          phone: '555-0100'
-        },
-        last_verified: now
-      },
-      {
-        id: 'kh2',
-        name: 'Bob Chen',
-        role: 'spouse',
-        jurisdiction: 'New York, USA',
-        location: 'New York',
-        storage_type: 'hardware-wallet',
-        key_age_days: 0,
-        is_sharded: false,
-        contact: {
-          email: 'bob@example.com',
-          phone: '555-0101'
-        },
-        last_verified: now
-      },
-      {
-        id: 'kh3',
-        name: 'Lawyer Smith',
-        role: 'attorney',
-        jurisdiction: 'Illinois, USA',
-        location: 'Chicago',
-        storage_type: 'paper',
-        key_age_days: 0,
-        is_sharded: false,
-        contact: {
-          email: 'smith@lawfirm.com',
-          phone: '555-0102'
-        },
-        last_verified: now
-      }
-    ],
-
-    // Redundancy metrics matching demo data
-    redundancy: {
-      device_count: 3,
-      location_count: 3,
-      person_count: 3,
-      geographic_distribution: ['San Francisco', 'New York', 'Chicago'],
-      passes_3_3_3_rule: true
+    thap: {
+      current_hash: '',
+      history: [],
     },
-
-    // Activity tracking (empty)
-    drills: [],
-    rotations: [],
-
-    // Legal & education defaults
-    legal_docs: {
-      has_will: false,
-      has_trust: false,
-      has_letter_of_instruction: false,
-      last_review: now,
-      next_review: addDays(now, 365)
-    },
-
-    education: {
-      heirs_trained: false,
-      last_training: now,
-      next_review: addDays(now, 90),
-      trained_heirs: []
-    },
-
-    // Initial risk analysis
-    risk_analysis: {
-      last_run: now,
-      scenarios_tested: 0,
-      probability_of_recovery: 0,
-      critical_risks: ['No multisig configuration defined'],
-      mitigation_applied: [],
-      scenario_results: []
-    },
-
-    // Start event log
     event_log: [
       {
         id: generateId(),
         timestamp: now,
         event_type: 'file_created',
-        description: `Little Shard file created for ${familyName}`,
-        metadata: { version: LITTLE_SHARD_VERSION }
-      }
-    ]
+        description: `Keep file created for ${familyName}`,
+        metadata: { version: LITTLE_SHARD_VERSION },
+      },
+    ],
+  };
+}
+
+// ============================================================================
+// v1 → v2 Migration
+// ============================================================================
+
+/**
+ * Migrate a v1 FamilySetupData (old .keepnexus/.shard format) to LittleShardFile v2.0
+ */
+export function migrateV1ToV2(v1Data: any): LittleShardFile {
+  const now = new Date().toISOString();
+
+  // Build wallets from v1 vaults[] or multisig
+  const wallets: Wallet[] = [];
+  if (v1Data.vaults && v1Data.vaults.length > 0) {
+    v1Data.vaults.forEach((v: any, i: number) => {
+      wallets.push({
+        id: v.id || `wallet-${i}`,
+        label: v.label || 'primary',
+        descriptor: '',
+        threshold: v.multisig?.threshold || 0,
+        total_keys: v.multisig?.totalKeys || 0,
+        platform: v.multisig?.platform,
+        created_at: v.multisig?.createdAt ? new Date(v.multisig.createdAt).toISOString() : now,
+      });
+    });
+  } else if (v1Data.multisig?.threshold) {
+    wallets.push({
+      id: 'wallet-primary',
+      label: 'primary',
+      descriptor: '',
+      threshold: v1Data.multisig.threshold,
+      total_keys: v1Data.multisig.totalKeys,
+      platform: v1Data.multisig.platform,
+      created_at: v1Data.multisig.createdAt ? new Date(v1Data.multisig.createdAt).toISOString() : now,
+    });
+  }
+
+  // Build keyholders from v1 multisig.keys
+  const keyholders: KeyHolder[] = [];
+  const keys = v1Data.vaults?.[0]?.multisig?.keys || v1Data.multisig?.keys || [];
+  keys.forEach((k: any) => {
+    keyholders.push({
+      id: k.id || generateId(),
+      name: k.holder || '',
+      role: k.role || 'other',
+      jurisdiction: '',
+      storage_type: k.storage || 'hardware-wallet',
+      location: k.location || '',
+      key_age_days: 0,
+      is_sharded: k.type === 'sharded',
+    });
+  });
+
+  // Build heirs
+  const heirs = (v1Data.heirs || []).map((h: any) => ({
+    id: h.id || generateId(),
+    name: h.name || '',
+    relationship: h.relationship || '',
+    allocation: h.allocation,
+    isKeyHolder: h.isKeyHolder,
+    contact: h.email || h.phone ? { email: h.email, phone: h.phone } : undefined,
+  }));
+
+  // Build charter
+  const charter = {
+    mission: v1Data.charter?.mission || '',
+    principles: v1Data.charter?.principles || [],
+    reviewFrequency: (v1Data.charter?.reviewFrequency || 'annual') as 'quarterly' | 'annual',
+    lastReviewed: v1Data.charter?.lastReviewed ? new Date(v1Data.charter.lastReviewed).toISOString() : undefined,
+  };
+
+  // Build legal
+  const legal = {
+    has_will: false,
+    has_trust: !!v1Data.trust?.trustName,
+    has_letter_of_instruction: false,
+    trust_name: v1Data.trust?.trustName,
+    jurisdiction: v1Data.trust?.jurisdiction,
+    bitcoin_in_docs: v1Data.trust?.bitcoinInDocs,
+    rufadaa_filed: v1Data.trust?.rufadaaFiled,
+    trustee_names: v1Data.trust?.trusteeNames,
+    last_review: v1Data.trust?.lastReviewed ? new Date(v1Data.trust.lastReviewed).toISOString() : now,
+    next_review: addDays(now, 365),
+  };
+
+  // Build continuity
+  const continuity = {
+    checkin_frequency: (v1Data.drillSettings?.notificationDays === 30 ? 'monthly' :
+      v1Data.drillSettings?.notificationDays === 365 ? 'annual' : 'quarterly') as 'monthly' | 'quarterly' | 'annual',
+    drill_frequency: (v1Data.drillSettings?.frequency || 'quarterly') as 'monthly' | 'quarterly' | 'annual',
+    last_drill: v1Data.drillSettings?.lastDrillDate ? new Date(v1Data.drillSettings.lastDrillDate).toISOString() : undefined,
+    next_drill_due: v1Data.drillSettings?.nextDrillDate ? new Date(v1Data.drillSettings.nextDrillDate).toISOString() : undefined,
+    notification_days: v1Data.drillSettings?.notificationDays,
+  };
+
+  // Build professionals
+  const professionals = {
+    advisor: v1Data.captainSettings?.advisorName ? {
+      name: v1Data.captainSettings.advisorName,
+      firm: v1Data.captainSettings.advisorFirm,
+      email: v1Data.captainSettings.advisorEmail,
+      phone: v1Data.captainSettings.advisorPhone,
+    } : undefined,
+    attorney: v1Data.captainSettings?.professionalNetwork?.attorney ? {
+      name: v1Data.captainSettings.professionalNetwork.attorney,
+    } : undefined,
+    cpa: v1Data.taxSettings?.cpaName ? {
+      name: v1Data.taxSettings.cpaName,
+      email: v1Data.taxSettings.cpaEmail,
+    } : undefined,
+  };
+
+  // Build drills from drillHistory
+  const drills = (v1Data.drillHistory || []).map((d: any) => ({
+    id: d.id || generateId(),
+    timestamp: d.date ? new Date(d.date).toISOString() : now,
+    type: 'recovery' as const,
+    participants: d.participants || [],
+    success: d.result === 'passed',
+    duration_minutes: d.duration,
+    notes: d.notes,
+  }));
+
+  // Build event_log from auditTrail
+  const event_log: EventLogEntry[] = (v1Data.auditTrail || []).map((a: any, i: number) => ({
+    id: a.id || generateId(),
+    timestamp: a.timestamp ? new Date(a.timestamp).toISOString() : now,
+    event_type: a.action || 'unknown',
+    description: a.details || '',
+    metadata: a.field ? { field: a.field, oldValue: a.oldValue, newValue: a.newValue } : undefined,
+  }));
+
+  // Add migration entry
+  event_log.push({
+    id: generateId(),
+    timestamp: now,
+    event_type: 'file_migrated',
+    description: 'Migrated from v1 format to v2.0',
+    metadata: { from_version: '1.0.0', to_version: LITTLE_SHARD_VERSION },
+  });
+
+  // Build THAP
+  const thap = {
+    current_hash: v1Data.thapHash || '',
+    history: (v1Data.thapHistory || []).map((h: any) => ({
+      hash: h.hash || '',
+      timestamp: h.timestamp ? new Date(h.timestamp).toISOString() : now,
+      note: h.note,
+    })),
+  };
+
+  return {
+    version: LITTLE_SHARD_VERSION,
+    created_at: v1Data.createdAt ? new Date(v1Data.createdAt).toISOString() : now,
+    last_modified: now,
+    family_name: v1Data.familyName || '',
+    wallets,
+    keyholders,
+    governance_rules: (v1Data.governanceRules || []).map((r: any) => ({
+      id: r.id,
+      who: r.who,
+      canDo: r.canDo,
+      when: r.when,
+      condition: r.condition,
+      status: r.status || 'active',
+      risk: r.risk,
+      lastExecuted: r.lastExecuted ? new Date(r.lastExecuted).toISOString() : undefined,
+      executions: r.executions,
+    })),
+    redundancy: {
+      device_count: keyholders.length,
+      location_count: new Set(keyholders.map(k => k.location).filter(Boolean)).size,
+      person_count: keyholders.length,
+      geographic_distribution: [...new Set(keyholders.map(k => k.location).filter(Boolean))],
+      passes_3_3_3_rule: keyholders.length >= 3,
+    },
+    heirs,
+    charter,
+    legal,
+    drills,
+    continuity,
+    rotations: [],
+    professionals,
+    education: {
+      heirs_trained: false,
+      last_training: now,
+      next_review: addDays(now, 90),
+      trained_heirs: [],
+    },
+    keep_score: {
+      value: 25,
+      calculated_at: now,
+      components: { security: 30, redundancy: 20, liveness: 25, legal_readiness: 20, education: 30 },
+      trend: 'stable',
+      recommendations: [],
+    },
+    thap,
+    event_log,
   };
 }
 
@@ -174,36 +316,31 @@ export function createNewShardFile(familyName: string): LittleShardFile {
 // File Validation
 // ============================================================================
 
-/**
- * Validate a Little Shard file structure and data
- */
 export function validateShardFile(data: any): ValidationResult {
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // Check required fields
   if (!data.version) errors.push('Missing version field');
   if (!data.family_name) errors.push('Missing family_name field');
   if (!data.keep_score) errors.push('Missing keep_score object');
   if (!data.wallets) errors.push('Missing wallets array');
   if (!data.keyholders) errors.push('Missing keyholders array');
 
-  // Check version compatibility
+  // Accept both v1 and v2
   const version_compatible = data.version === LITTLE_SHARD_VERSION ||
-                           data.version?.startsWith('1.');
+    data.version?.startsWith('1.') ||
+    data.version?.startsWith('2.');
 
   if (!version_compatible) {
     errors.push(`Incompatible version: ${data.version}`);
   }
 
-  // Validate KEEP Score
   if (data.keep_score) {
     if (data.keep_score.value < 0 || data.keep_score.value > 100) {
       errors.push('KEEP Score must be between 0-100');
     }
   }
 
-  // Validate wallet configuration
   if (data.wallets && data.wallets.length > 0) {
     data.wallets.forEach((wallet: Wallet, i: number) => {
       if (wallet.threshold > wallet.total_keys) {
@@ -217,7 +354,6 @@ export function validateShardFile(data: any): ValidationResult {
     warnings.push('No multisig wallet configured');
   }
 
-  // Validate keyholders
   if (data.keyholders && data.keyholders.length > 0) {
     const ids = new Set<string>();
     data.keyholders.forEach((holder: KeyHolder) => {
@@ -225,8 +361,6 @@ export function validateShardFile(data: any): ValidationResult {
         errors.push(`Duplicate keyholder ID: ${holder.id}`);
       }
       ids.add(holder.id);
-
-      // Check shard configuration
       if (holder.is_sharded && holder.shard_config) {
         if (holder.shard_config.threshold > holder.shard_config.total) {
           errors.push(`${holder.name}: shard threshold exceeds total shards`);
@@ -237,56 +371,42 @@ export function validateShardFile(data: any): ValidationResult {
     warnings.push('No keyholders defined');
   }
 
-  // Check redundancy
   if (data.redundancy && !data.redundancy.passes_3_3_3_rule) {
     warnings.push('Does not meet 3-3-3 redundancy rule (3 devices, 3 locations, 3 people)');
   }
 
-  // Check drills
   if (!data.drills || data.drills.length === 0) {
     warnings.push('No recovery drills performed yet');
   }
 
-  // Check legal docs
-  if (data.legal_docs) {
-    if (!data.legal_docs.has_will && !data.legal_docs.has_trust) {
+  if (data.legal) {
+    if (!data.legal.has_will && !data.legal.has_trust) {
       warnings.push('No will or trust documents on file');
     }
   }
 
-  return {
-    valid: errors.length === 0,
-    errors,
-    warnings,
-    version_compatible
-  };
+  return { valid: errors.length === 0, errors, warnings, version_compatible };
 }
 
 // ============================================================================
 // File Import/Export
 // ============================================================================
 
-/**
- * Export Little Shard file to JSON string
- */
 export function exportToJSON(data: LittleShardFile, pretty = true): string {
-  // Add file hash before export
-  const exportData = { ...data };
+  const exportData = { ...data, last_modified: new Date().toISOString() };
   exportData.file_hash = calculateHashSync(exportData);
-
-  return pretty
-    ? JSON.stringify(exportData, null, 2)
-    : JSON.stringify(exportData);
+  return pretty ? JSON.stringify(exportData, null, 2) : JSON.stringify(exportData);
 }
 
-/**
- * Import Little Shard file from JSON string
- */
 export function importFromJSON(jsonString: string): LittleShardFile {
   try {
     const data = JSON.parse(jsonString);
 
-    // Validate before returning
+    // If this is a v1 file (has familyName but not family_name), migrate it
+    if (data.familyName && !data.family_name) {
+      return migrateV1ToV2(data);
+    }
+
     const validation = validateShardFile(data);
     if (!validation.valid) {
       throw new Error(`Invalid file: ${validation.errors.join(', ')}`);
@@ -294,34 +414,29 @@ export function importFromJSON(jsonString: string): LittleShardFile {
 
     return data as LittleShardFile;
   } catch (error) {
+    if (error instanceof Error && error.message.startsWith('Invalid file:')) {
+      throw error;
+    }
     throw new Error(`Failed to import file: ${error}`);
   }
 }
 
-/**
- * Save file to browser download
- */
 export function downloadFile(data: LittleShardFile, filename?: string): void {
   const json = exportToJSON(data);
   const blob = new Blob([json], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement('a');
   a.href = url;
-  a.download = filename || `keep_${data.family_name.toLowerCase().replace(/\s+/g, '_')}_${Date.now()}.shard`;
+  a.download = filename || `${data.family_name.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}${FILE_EXTENSION}`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
   URL.revokeObjectURL(url);
 }
 
-/**
- * Load file from user selection
- */
 export async function loadFile(file: File): Promise<LittleShardFile> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-
     reader.onload = (e) => {
       try {
         const content = e.target?.result as string;
@@ -331,7 +446,6 @@ export async function loadFile(file: File): Promise<LittleShardFile> {
         reject(error);
       }
     };
-
     reader.onerror = () => reject(new Error('Failed to read file'));
     reader.readAsText(file);
   });
@@ -341,10 +455,6 @@ export async function loadFile(file: File): Promise<LittleShardFile> {
 // Encryption (Client-Side)
 // ============================================================================
 
-/**
- * Encrypt Little Shard file with password
- * Uses Web Crypto API for client-side encryption
- */
 export async function encryptFile(
   data: LittleShardFile,
   password: string
@@ -353,45 +463,25 @@ export async function encryptFile(
   const jsonString = exportToJSON(data);
   const dataBuffer = encoder.encode(jsonString);
 
-  // Generate random salt and IV
   const salt = crypto.getRandomValues(new Uint8Array(16));
   const iv = crypto.getRandomValues(new Uint8Array(12));
 
-  // Derive key from password
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits', 'deriveKey']
+    'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits', 'deriveKey']
   );
 
   const key = await crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations: DEFAULT_ITERATIONS,
-      hash: 'SHA-256'
-    },
+    { name: 'PBKDF2', salt, iterations: DEFAULT_ITERATIONS, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     true,
     ['encrypt', 'decrypt']
   );
 
-  // Encrypt data
-  const encrypted = await crypto.subtle.encrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    dataBuffer
-  );
-
+  const encrypted = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, dataBuffer);
   return { encrypted, salt: salt.buffer, iv: iv.buffer };
 }
 
-/**
- * Decrypt Little Shard file with password
- */
 export async function decryptFile(
   encryptedData: ArrayBuffer,
   password: string,
@@ -401,35 +491,19 @@ export async function decryptFile(
   const encoder = new TextEncoder();
   const decoder = new TextDecoder();
 
-  // Derive key from password
   const keyMaterial = await crypto.subtle.importKey(
-    'raw',
-    encoder.encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits', 'deriveKey']
+    'raw', encoder.encode(password), 'PBKDF2', false, ['deriveBits', 'deriveKey']
   );
 
   const key = await crypto.subtle.deriveKey(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations: DEFAULT_ITERATIONS,
-      hash: 'SHA-256'
-    },
+    { name: 'PBKDF2', salt, iterations: DEFAULT_ITERATIONS, hash: 'SHA-256' },
     keyMaterial,
     { name: 'AES-GCM', length: 256 },
     true,
     ['encrypt', 'decrypt']
   );
 
-  // Decrypt data
-  const decrypted = await crypto.subtle.decrypt(
-    { name: 'AES-GCM', iv },
-    key,
-    encryptedData
-  );
-
+  const decrypted = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, encryptedData);
   const jsonString = decoder.decode(decrypted);
   return importFromJSON(jsonString);
 }
@@ -438,9 +512,6 @@ export async function decryptFile(
 // Event Log Management
 // ============================================================================
 
-/**
- * Add entry to event log
- */
 export function addEventLogEntry(
   data: LittleShardFile,
   eventType: string,
@@ -452,10 +523,9 @@ export function addEventLogEntry(
     timestamp: new Date().toISOString(),
     event_type: eventType,
     description,
-    metadata
+    metadata,
   };
 
-  // Add hash of previous entry for tamper evidence
   if (data.event_log && data.event_log.length > 0) {
     const previousEntry = data.event_log[data.event_log.length - 1];
     entry.hash = calculateHashSync(previousEntry);
@@ -464,7 +534,7 @@ export function addEventLogEntry(
   return {
     ...data,
     event_log: [...(data.event_log || []), entry],
-    last_modified: entry.timestamp
+    last_modified: entry.timestamp,
   };
 }
 
@@ -472,29 +542,11 @@ export function addEventLogEntry(
 // Utility Functions
 // ============================================================================
 
-/**
- * Generate unique ID
- */
 function generateId(): string {
   return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
 
-/**
- * Calculate SHA-256 hash of object
- */
-async function calculateHash(obj: any): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(JSON.stringify(obj));
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-/**
- * Simple synchronous hash for non-async contexts
- */
 function calculateHashSync(obj: any): string {
-  // Simple hash for synchronous contexts (not cryptographically secure)
   const str = JSON.stringify(obj);
   let hash = 0;
   for (let i = 0; i < str.length; i++) {
@@ -505,12 +557,8 @@ function calculateHashSync(obj: any): string {
   return Math.abs(hash).toString(16);
 }
 
-// Use sync version for now
 export { calculateHashSync as calculateHash };
 
-/**
- * Add days to date
- */
 function addDays(dateString: string, days: number): string {
   const date = new Date(dateString);
   date.setDate(date.getDate() + days);
@@ -523,12 +571,8 @@ function addDays(dateString: string, days: number): string {
 
 const STORAGE_KEY = 'keep_little_shard';
 
-/**
- * Save to browser local storage
- */
 export function saveToLocalStorage(data: LittleShardFile): void {
-  if (typeof window === 'undefined') return; // Skip on server
-
+  if (typeof window === 'undefined') return;
   try {
     const json = exportToJSON(data);
     localStorage.setItem(STORAGE_KEY, json);
@@ -537,12 +581,8 @@ export function saveToLocalStorage(data: LittleShardFile): void {
   }
 }
 
-/**
- * Load from browser local storage
- */
 export function loadFromLocalStorage(): LittleShardFile | null {
-  if (typeof window === 'undefined') return null; // Skip on server
-
+  if (typeof window === 'undefined') return null;
   try {
     const json = localStorage.getItem(STORAGE_KEY);
     if (!json) return null;
@@ -553,11 +593,7 @@ export function loadFromLocalStorage(): LittleShardFile | null {
   }
 }
 
-/**
- * Clear local storage
- */
 export function clearLocalStorage(): void {
-  if (typeof window === 'undefined') return; // Skip on server
-
+  if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEY);
 }

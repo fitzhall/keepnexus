@@ -3,65 +3,59 @@
 import { useState } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
 import Link from 'next/link'
-import type { Vault } from '@/lib/risk-simulator/types'
+import type { Wallet } from '@/lib/keep-core/data-model'
 
 const PLATFORMS = ['Theya', 'Casa', 'Unchained', 'Nunchuk', 'Other']
 const LABEL_PRESETS = ['cold', 'warm', 'hot']
 
 export default function UpdateVaultPage() {
-  const { setup, addVault, updateVault, removeVault } = useFamilySetup()
+  const { setup, addWallet, updateWallet, removeWallet } = useFamilySetup()
   const [showAdd, setShowAdd] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [confirmRemove, setConfirmRemove] = useState<string | null>(null)
 
-  // New vault form state
+  // New wallet form state
   const [newLabel, setNewLabel] = useState('cold')
   const [newCustomLabel, setNewCustomLabel] = useState('')
   const [newPlatform, setNewPlatform] = useState('Unchained')
   const [newM, setNewM] = useState(2)
   const [newN, setNewN] = useState(3)
 
-  // Edit vault form state
+  // Edit wallet form state
   const [editPlatform, setEditPlatform] = useState('')
   const [editM, setEditM] = useState(2)
   const [editN, setEditN] = useState(3)
 
-  const startEdit = (vault: Vault) => {
-    setEditId(vault.id)
-    setEditPlatform(vault.multisig.platform || '')
-    setEditM(vault.multisig.threshold || 2)
-    setEditN(vault.multisig.totalKeys || 3)
+  const startEdit = (wallet: Wallet) => {
+    setEditId(wallet.id)
+    setEditPlatform(wallet.platform || '')
+    setEditM(wallet.threshold || 2)
+    setEditN(wallet.total_keys || 3)
     setShowAdd(false)
   }
 
-  const saveEdit = (vault: Vault) => {
-    updateVault(vault.id, {
-      ...vault,
-      multisig: {
-        ...vault.multisig,
-        platform: editPlatform,
-        threshold: editM,
-        totalKeys: editN,
-      },
+  const saveEdit = (wallet: Wallet) => {
+    updateWallet(wallet.id, {
+      platform: editPlatform,
+      threshold: editM,
+      total_keys: editN,
     })
     setEditId(null)
   }
 
   const handleAdd = () => {
     if (newM < 1 || newM > newN || newN > 15) return
-    const label = newLabel === 'custom' ? (newCustomLabel.trim() || 'vault') : newLabel
-    addVault({
-      id: `vault-${label}-${Date.now()}`,
+    const label = newLabel === 'custom' ? (newCustomLabel.trim() || 'wallet') : newLabel
+    const wallet: Wallet = {
+      id: `wallet-${label}-${Date.now()}`,
       label,
-      multisig: {
-        family: setup.familyName,
-        threshold: newM,
-        totalKeys: newN,
-        platform: newPlatform,
-        keys: [],
-        createdAt: new Date(),
-      },
-    })
+      descriptor: '',
+      threshold: newM,
+      total_keys: newN,
+      platform: newPlatform,
+      created_at: new Date().toISOString(),
+    }
+    addWallet(wallet)
     setShowAdd(false)
     setNewLabel('cold')
     setNewCustomLabel('')
@@ -71,36 +65,36 @@ export default function UpdateVaultPage() {
   }
 
   const handleRemove = (id: string) => {
-    removeVault(id)
+    removeWallet(id)
     setConfirmRemove(null)
   }
 
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS · vaults</div>
+        <div className="nexus-title">KEEP NEXUS · wallets</div>
 
         <div className="nexus-divider" />
 
-        {setup.vaults.length === 0 ? (
-          <p className="text-zinc-500 text-sm font-mono">no vaults configured</p>
+        {setup.wallets.length === 0 ? (
+          <p className="text-zinc-500 text-sm font-mono">no wallets configured</p>
         ) : (
           <div className="space-y-4">
-            {setup.vaults.map(vault => (
-              <div key={vault.id} className="space-y-2">
+            {setup.wallets.map(wallet => (
+              <div key={wallet.id} className="space-y-2">
                 <div
                   className="nexus-row hover:text-zinc-100 transition-colors cursor-pointer"
-                  onClick={() => editId === vault.id ? setEditId(null) : startEdit(vault)}
+                  onClick={() => editId === wallet.id ? setEditId(null) : startEdit(wallet)}
                 >
-                  <span className="text-zinc-300 font-medium">{vault.label}</span>
+                  <span className="text-zinc-300 font-medium">{wallet.label}</span>
                   <span className="nexus-row-value">
-                    {vault.multisig.threshold}-of-{vault.multisig.totalKeys}
-                    {vault.multisig.platform ? ` · ${vault.multisig.platform}` : ''}
+                    {wallet.threshold}-of-{wallet.total_keys}
+                    {wallet.platform ? ` · ${wallet.platform}` : ''}
                   </span>
                 </div>
 
                 {/* Inline edit */}
-                {editId === vault.id && (
+                {editId === wallet.id && (
                   <div className="pl-4 space-y-3 border-l border-zinc-700">
                     <div className="nexus-row">
                       <span className="nexus-row-label">platform</span>
@@ -137,23 +131,23 @@ export default function UpdateVaultPage() {
                       </div>
                     </div>
                     <div className="flex gap-2">
-                      <button className="nexus-btn nexus-btn-primary text-xs" onClick={() => saveEdit(vault)}>
+                      <button className="nexus-btn nexus-btn-primary text-xs" onClick={() => saveEdit(wallet)}>
                         [save]
                       </button>
                       <button className="nexus-btn text-xs" onClick={() => setEditId(null)}>
                         [cancel]
                       </button>
-                      {confirmRemove === vault.id ? (
+                      {confirmRemove === wallet.id ? (
                         <button
                           className="nexus-btn text-xs text-red-400 hover:text-red-300"
-                          onClick={() => handleRemove(vault.id)}
+                          onClick={() => handleRemove(wallet.id)}
                         >
                           [confirm remove]
                         </button>
                       ) : (
                         <button
                           className="nexus-btn text-xs text-zinc-600 hover:text-red-400"
-                          onClick={() => setConfirmRemove(vault.id)}
+                          onClick={() => setConfirmRemove(wallet.id)}
                         >
                           [remove]
                         </button>
@@ -168,10 +162,10 @@ export default function UpdateVaultPage() {
 
         <div className="nexus-divider" />
 
-        {/* Add vault inline form */}
+        {/* Add wallet inline form */}
         {showAdd ? (
           <div className="space-y-4">
-            <div className="text-zinc-400 text-xs uppercase tracking-wider">new vault</div>
+            <div className="text-zinc-400 text-xs uppercase tracking-wider">new wallet</div>
 
             <div>
               <label className="text-sm text-zinc-500 block mb-2">label</label>
@@ -249,7 +243,7 @@ export default function UpdateVaultPage() {
                 onClick={handleAdd}
                 disabled={newM < 1 || newM > newN || newN > 15}
               >
-                [add vault]
+                [add wallet]
               </button>
               <button className="nexus-btn text-xs" onClick={() => setShowAdd(false)}>
                 [cancel]
@@ -258,7 +252,7 @@ export default function UpdateVaultPage() {
           </div>
         ) : (
           <button className="nexus-btn" onClick={() => { setShowAdd(true); setEditId(null) }}>
-            [add vault]
+            [add wallet]
           </button>
         )}
 

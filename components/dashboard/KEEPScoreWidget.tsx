@@ -23,33 +23,34 @@ export function KEEPScoreWidget({ onScoreUpdate }: KEEPScoreWidgetProps) {
     // Quick scoring based on available context data
     let k = 0, e1 = 0, e2 = 0, p = 0
 
-    // K - Keep Secure (based on multisig setup)
-    if (setup.multisig) {
-      if (setup.multisig.threshold >= 2) k += 40
-      const hwCount = setup.multisig.keys.filter(key =>
-        key.storage === 'hardware-wallet'
-      ).length
+    // K - Keep Secure (based on wallet/keyholder setup)
+    const wallet = setup.wallets?.[0]
+    if (wallet) {
+      if (wallet.threshold >= 2) k += 40
+      const hwCount = setup.keyholders?.filter(kh =>
+        kh.storage_type === 'hardware-wallet'
+      ).length ?? 0
       k += Math.min(30, hwCount * 10)
-      if (setup.multisig.keys.length >= 3) k += 30
+      if (wallet.total_keys >= 3) k += 30
     }
     k = Math.min(100, k)
 
-    // E - Establish Legal (based on trust data)
-    if (setup.trust) {
-      if (setup.trust.trustName) e1 += 40
-      if (setup.trust.trusteeNames && setup.trust.trusteeNames.length > 0) e1 += 30
-      if (setup.trust.dateEstablished) e1 += 30
+    // E - Establish Legal (based on legal data)
+    if (setup.legal) {
+      if (setup.legal.trust_name) e1 += 40
+      if (setup.legal.trustee_names && setup.legal.trustee_names.length > 0) e1 += 30
+      if (setup.legal.last_review) e1 += 30
     }
     e1 = Math.min(100, e1)
 
     // E - Ensure Access (based on drills and distribution)
-    if (setup.drillHistory && setup.drillHistory.length > 0) {
+    if (setup.drills && setup.drills.length > 0) {
       e2 += 30
-      const recentDrill = setup.drillHistory[setup.drillHistory.length - 1]
-      if (recentDrill && recentDrill.result === 'passed') e2 += 30
+      const recentDrill = setup.drills[setup.drills.length - 1]
+      if (recentDrill && recentDrill.success) e2 += 30
     }
-    if (setup.multisig && setup.multisig.keys.length >= 3) {
-      const locations = new Set(setup.multisig.keys.map(k => k.location))
+    if (setup.keyholders && setup.keyholders.length >= 3) {
+      const locations = new Set(setup.keyholders.map(kh => kh.location))
       e2 += Math.min(30, locations.size * 10)
     }
     e2 = Math.min(100, e2)

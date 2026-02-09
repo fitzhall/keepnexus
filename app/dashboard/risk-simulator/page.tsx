@@ -20,7 +20,7 @@ import { SetupConfigPanel } from '@/components/risk-simulator/SetupConfigPanel'
 import { FileExport } from '@/components/risk-simulator/FileExport'
 import { FileImport } from '@/components/risk-simulator/FileImport'
 import { PDFPacketExport } from '@/components/risk-simulator/PDFPacketExport'
-import { MultisigSetup, Scenario, SimulationResult, ShardConfig, KeyType } from '@/lib/risk-simulator/types'
+import { MultisigSetup, Scenario, SimulationResult, ShardConfig, KeyType, KeyRole } from '@/lib/risk-simulator/types'
 import { analyzeRisk, simulateScenario } from '@/lib/risk-simulator/engine'
 import { PRESET_SCENARIOS } from '@/lib/risk-simulator/scenarios'
 import { generateKeyAvailabilityScenarios } from '@/lib/risk-simulator/scenarios-simple'
@@ -29,8 +29,29 @@ import { useFamilySetup } from '@/lib/context/FamilySetup'
 
 export default function RiskSimulatorPage() {
   // Use FamilySetup context instead of hardcoded data
-  const { setup: contextSetup, updateMultisig } = useFamilySetup()
-  const [setup, setSetup] = useState<MultisigSetup>(contextSetup.multisig)
+  const { setup: contextSetup } = useFamilySetup()
+
+  // Build MultisigSetup from context's wallets and keyholders
+  const buildMultisigSetup = (): MultisigSetup => {
+    const wallet = contextSetup.wallets[0]
+    return {
+      threshold: wallet?.threshold ?? 2,
+      totalKeys: wallet?.total_keys ?? 3,
+      keys: contextSetup.keyholders.map(kh => ({
+        id: kh.id,
+        holder: kh.name,
+        role: kh.role as KeyRole | undefined,
+        type: (kh.is_sharded ? 'sharded' : 'full') as KeyType,
+        storage: kh.storage_type as any,
+        location: kh.location,
+      })),
+      family: contextSetup.family_name,
+      platform: wallet?.platform,
+      createdAt: new Date(wallet?.created_at ?? contextSetup.created_at),
+    }
+  }
+
+  const [setup, setSetup] = useState<MultisigSetup>(buildMultisigSetup())
 
   // Scenario mode: simple (key availability) or classic (prescriptive)
   const [scenarioMode, setScenarioMode] = useState<'simple' | 'classic'>('simple')
@@ -53,8 +74,8 @@ export default function RiskSimulatorPage() {
 
   // Sync with context when it changes
   useEffect(() => {
-    setSetup(contextSetup.multisig)
-  }, [contextSetup.multisig])
+    setSetup(buildMultisigSetup())
+  }, [contextSetup.wallets, contextSetup.keyholders])
 
   // Run simulation on mount and when setup changes
   useEffect(() => {
@@ -134,10 +155,9 @@ export default function RiskSimulatorPage() {
   // Count recoverable scenarios
   const recoverableCount = results.filter(r => r.outcome === 'recoverable').length
 
-  // Handle updating entire setup
+  // Handle updating entire setup (local only for simulation)
   const handleUpdateSetup = (newSetup: MultisigSetup) => {
     setSetup(newSetup)
-    updateMultisig(newSetup) // Sync back to context
   }
 
   // Handle toggling shard mode for a key
@@ -151,7 +171,6 @@ export default function RiskSimulatorPage() {
       )
     }
     setSetup(newSetup)
-    updateMultisig(newSetup)
   }
 
   // Handle updating shard configuration
@@ -165,13 +184,11 @@ export default function RiskSimulatorPage() {
       )
     }
     setSetup(newSetup)
-    updateMultisig(newSetup)
   }
 
   // Handle importing a .keepnexus file
   const handleImport = (file: KeepNexusFile) => {
     setSetup(file.setup)
-    updateMultisig(file.setup)
   }
 
   return (

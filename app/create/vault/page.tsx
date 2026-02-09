@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
+import type { Wallet } from '@/lib/keep-core/data-model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -10,38 +11,47 @@ const LABEL_PRESETS = ['cold', 'warm', 'hot']
 
 export default function CreateVaultPage() {
   const router = useRouter()
-  const { setup, updateMultisig, addVault } = useFamilySetup()
+  const { setup, addWallet } = useFamilySetup()
 
   const [label, setLabel] = useState('cold')
   const [customLabel, setCustomLabel] = useState('')
   const [platform, setPlatform] = useState('Unchained')
-  const [quorumM, setQuorumM] = useState(setup.multisig.threshold || 2)
-  const [quorumN, setQuorumN] = useState(setup.multisig.totalKeys || 3)
+  const [quorumM, setQuorumM] = useState(2)
+  const [quorumN, setQuorumN] = useState(3)
 
+  // Pre-fill from first existing wallet if present
   useEffect(() => {
-    setQuorumM(setup.multisig.threshold || 2)
-    setQuorumN(setup.multisig.totalKeys || 3)
-  }, [setup.multisig.threshold, setup.multisig.totalKeys])
+    if (setup.wallets.length > 0) {
+      const first = setup.wallets[0]
+      setQuorumM(first.threshold || 2)
+      setQuorumN(first.total_keys || 3)
+      if (first.platform) setPlatform(first.platform)
+      if (first.label) {
+        if (LABEL_PRESETS.includes(first.label)) {
+          setLabel(first.label)
+        } else {
+          setLabel('custom')
+          setCustomLabel(first.label)
+        }
+      }
+    }
+  }, [setup.wallets])
 
   const handleNext = () => {
     if (quorumM < 1 || quorumM > quorumN || quorumN > 15) return
 
-    const multisig = {
-      ...setup.multisig,
-      family: setup.familyName,
+    const vaultLabel = label === 'custom' ? (customLabel.trim() || 'primary') : label
+
+    const wallet: Wallet = {
+      id: `wallet-${vaultLabel}-${Date.now()}`,
+      descriptor: '',
       threshold: quorumM,
-      totalKeys: quorumN,
+      total_keys: quorumN,
+      created_at: new Date().toISOString(),
+      label: vaultLabel,
       platform,
     }
-    updateMultisig(multisig)
-
-    // Create first vault entry
-    const vaultLabel = label === 'custom' ? (customLabel.trim() || 'primary') : label
-    addVault({
-      id: `vault-${vaultLabel}-${Date.now()}`,
-      label: vaultLabel,
-      multisig,
-    })
+    addWallet(wallet)
 
     router.push('/create/roles')
   }
@@ -49,7 +59,7 @@ export default function CreateVaultPage() {
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS · create · 2/7</div>
+        <div className="nexus-title">KEEP NEXUS · create · 2/7 · K key governance</div>
 
         <div className="nexus-divider" />
 

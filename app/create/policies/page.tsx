@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
+import type { ContinuityConfig } from '@/lib/keep-core/data-model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -9,31 +10,35 @@ const FREQUENCY_OPTIONS = ['monthly', 'quarterly', 'annual'] as const
 
 export default function CreatePoliciesPage() {
   const router = useRouter()
-  const { setup, updateDrillSettings } = useFamilySetup()
+  const { setup, updateContinuity, addEventLogEntry } = useFamilySetup()
 
   const [checkinFrequency, setCheckinFrequency] = useState<string>('quarterly')
   const [drillFrequency, setDrillFrequency] = useState<string>('quarterly')
 
   useEffect(() => {
-    if (setup.drillSettings?.frequency) {
-      setDrillFrequency(setup.drillSettings.frequency)
+    if (setup.continuity) {
+      if (setup.continuity.checkin_frequency) setCheckinFrequency(setup.continuity.checkin_frequency)
+      if (setup.continuity.drill_frequency) setDrillFrequency(setup.continuity.drill_frequency)
     }
-  }, [setup.drillSettings])
+  }, [setup.continuity])
 
   const handleFinish = () => {
-    updateDrillSettings({
-      ...setup.drillSettings,
-      frequency: drillFrequency as 'monthly' | 'quarterly',
-      notificationDays: checkinFrequency === 'monthly' ? 30 : checkinFrequency === 'quarterly' ? 90 : 365,
-      autoReminder: true,
-    })
+    const freqToDays = (f: string) => f === 'monthly' ? 30 : f === 'quarterly' ? 90 : 365
+
+    const continuity: ContinuityConfig = {
+      checkin_frequency: checkinFrequency as ContinuityConfig['checkin_frequency'],
+      drill_frequency: drillFrequency as ContinuityConfig['drill_frequency'],
+      notification_days: freqToDays(checkinFrequency),
+    }
+    updateContinuity(continuity)
+    addEventLogEntry('setup.completed', `Initial KEEP shard created for ${setup.family_name}`)
     router.push('/dashboard')
   }
 
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS · create · 7/7</div>
+        <div className="nexus-title">KEEP NEXUS · create · 7/7 · E ensured continuity</div>
 
         <div className="nexus-divider" />
 

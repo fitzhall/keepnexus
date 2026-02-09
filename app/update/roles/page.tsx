@@ -14,7 +14,7 @@ interface Professional {
 
 export default function UpdateRolesPage() {
   const router = useRouter()
-  const { setup, updateCaptainSettings } = useFamilySetup()
+  const { setup, updateProfessionals } = useFamilySetup()
 
   const [professionals, setProfessionals] = useState<Professional[]>([
     { role: 'attorney', name: '', firm: '', email: '' },
@@ -23,30 +23,30 @@ export default function UpdateRolesPage() {
   ])
 
   useEffect(() => {
-    if (setup.captainSettings?.professionalNetwork) {
-      const network = setup.captainSettings.professionalNetwork
+    if (setup.professionals) {
+      const network = setup.professionals
       setProfessionals([
         {
           role: 'attorney',
-          name: '',
-          firm: network.attorney || '',
-          email: ''
+          name: network.attorney?.name || '',
+          firm: network.attorney?.firm || '',
+          email: network.attorney?.email || ''
         },
         {
           role: 'cpa',
-          name: setup.taxSettings?.cpaName || '',
-          firm: '',
-          email: setup.taxSettings?.cpaEmail || ''
+          name: network.cpa?.name || '',
+          firm: network.cpa?.firm || '',
+          email: network.cpa?.email || ''
         },
         {
           role: 'advisor',
-          name: setup.captainSettings?.advisorName || '',
-          firm: setup.captainSettings?.advisorFirm || '',
-          email: setup.captainSettings?.advisorEmail || ''
+          name: network.advisor?.name || '',
+          firm: network.advisor?.firm || '',
+          email: network.advisor?.email || ''
         }
       ])
     }
-  }, [setup.captainSettings, setup.taxSettings])
+  }, [setup.professionals])
 
   const updateProfessional = (index: number, field: keyof Professional, value: string) => {
     const newProfessionals = [...professionals]
@@ -59,16 +59,10 @@ export default function UpdateRolesPage() {
     const cpa = professionals.find(p => p.role === 'cpa')
     const advisor = professionals.find(p => p.role === 'advisor')
 
-    updateCaptainSettings({
-      ...setup.captainSettings,
-      advisorName: advisor?.name || '',
-      advisorEmail: advisor?.email || '',
-      advisorFirm: advisor?.firm || '',
-      professionalNetwork: {
-        attorney: attorney?.firm || attorney?.name || '',
-        cpa: cpa?.firm || cpa?.name || '',
-        custodian: setup.captainSettings?.professionalNetwork?.custodian || ''
-      }
+    updateProfessionals({
+      attorney: attorney?.name ? { name: attorney.name, firm: attorney.firm, email: attorney.email } : undefined,
+      cpa: cpa?.name ? { name: cpa.name, firm: cpa.firm, email: cpa.email } : undefined,
+      advisor: advisor?.name ? { name: advisor.name, firm: advisor.firm, email: advisor.email } : undefined,
     })
 
     router.push('/dashboard')

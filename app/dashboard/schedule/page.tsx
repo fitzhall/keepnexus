@@ -4,12 +4,13 @@ import { useState } from 'react'
 import { ArrowLeft, Plus, X } from 'lucide-react'
 import Link from 'next/link'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
-import { ScheduleEvent } from '@/lib/risk-simulator/file-export'
 
 export default function SchedulePage() {
-  // Use context instead of local state
-  const { setup, addScheduleEvent, removeScheduleEvent, updateScheduleEvents } = useFamilySetup()
-  const events = setup.scheduleEvents
+  // Schedule events are now derived from event_log entries with type 'schedule.*'
+  const { setup, addEventLogEntry } = useFamilySetup()
+
+  // Filter event_log for schedule-related events
+  const events = setup.event_log.filter(e => e.event_type.startsWith('schedule.'))
 
   const [showAddModal, setShowAddModal] = useState(false)
   const [formData, setFormData] = useState({
@@ -22,33 +23,15 @@ export default function SchedulePage() {
   const handleAddEvent = () => {
     if (!formData.title || !formData.date) return
 
-    const newEvent: ScheduleEvent = {
-      id: Date.now().toString(),
-      title: formData.title,
+    // Add as an event_log entry with schedule prefix
+    addEventLogEntry('schedule.created', formData.title, {
       description: formData.description,
       date: formData.date,
       type: formData.type,
-      completed: false,
-      createdAt: new Date()
-    }
-
-    // Add to context (will auto-save to localStorage)
-    addScheduleEvent(newEvent)
-
-    // Sort events by date
-    const sortedEvents = [...events, newEvent].sort((a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
-    )
-    updateScheduleEvents(sortedEvents)
+    })
 
     setShowAddModal(false)
     setFormData({ title: '', description: '', date: '', type: 'custom' })
-  }
-
-  const handleRemoveEvent = (id: string) => {
-    if (confirm('Remove this event from schedule?')) {
-      removeScheduleEvent(id)
-    }
   }
 
   // Format date for display
@@ -90,25 +73,27 @@ export default function SchedulePage() {
             </div>
 
             <div className="divide-y divide-gray-300">
-              {events.map((event) => (
-                <div key={event.id} className="px-6 py-3 hover:bg-gray-50 transition-colors group">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900">{event.title}</p>
-                      <p className="text-xs text-gray-600">{event.description}</p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <p className="text-xs text-gray-500">{formatDate(event.date)}</p>
-                      <button
-                        onClick={() => handleRemoveEvent(event.id)}
-                        className="opacity-0 group-hover:opacity-100 text-gray-400 hover:text-red-600 transition-opacity"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
+              {events.length === 0 ? (
+                <div className="px-6 py-8 text-center text-gray-500 text-sm">
+                  No schedule events yet. Add your first event to get started.
+                </div>
+              ) : (
+                events.map((event) => (
+                  <div key={event.id} className="px-6 py-3 hover:bg-gray-50 transition-colors group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900">{event.description}</p>
+                        <p className="text-xs text-gray-600">{event.metadata?.description}</p>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <p className="text-xs text-gray-500">
+                          {event.metadata?.date ? formatDate(event.metadata.date) : formatDate(event.timestamp)}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

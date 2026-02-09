@@ -17,7 +17,7 @@ const LIFE_EVENT_OPTIONS = [
 
 export default function UpdatePoliciesPage() {
   const router = useRouter()
-  const { setup, updateDrillSettings } = useFamilySetup()
+  const { setup, updateContinuity } = useFamilySetup()
 
   const [checkinFrequency, setCheckinFrequency] = useState<string>('quarterly')
   const [drillFrequency, setDrillFrequency] = useState<string>('monthly')
@@ -31,16 +31,31 @@ export default function UpdatePoliciesPage() {
   const [otherText, setOtherText] = useState('')
 
   useEffect(() => {
-    if (setup.drillSettings) {
-      setDrillFrequency(setup.drillSettings.frequency || 'monthly')
+    if (setup.continuity) {
+      setDrillFrequency(setup.continuity.drill_frequency || 'monthly')
+      setCheckinFrequency(setup.continuity.checkin_frequency || 'quarterly')
+      // Restore life event triggers if stored
+      if (setup.continuity.life_event_triggers) {
+        const restored: Record<string, boolean> = {}
+        for (const t of setup.continuity.life_event_triggers) {
+          restored[t] = true
+        }
+        setTriggers(prev => ({ ...prev, ...restored }))
+      }
     }
-  }, [setup.drillSettings])
+  }, [setup.continuity])
 
   const handleSave = () => {
-    updateDrillSettings({
-      ...setup.drillSettings,
-      frequency: drillFrequency as 'monthly' | 'quarterly',
-      notificationDays: checkinFrequency === 'monthly' ? 30 : checkinFrequency === 'quarterly' ? 90 : 365,
+    const activeTriggers = Object.entries(triggers)
+      .filter(([, active]) => active)
+      .map(([key]) => key)
+
+    updateContinuity({
+      ...setup.continuity,
+      drill_frequency: drillFrequency as 'monthly' | 'quarterly' | 'annual',
+      checkin_frequency: checkinFrequency as 'monthly' | 'quarterly' | 'annual',
+      notification_days: checkinFrequency === 'monthly' ? 30 : checkinFrequency === 'quarterly' ? 90 : 365,
+      life_event_triggers: activeTriggers,
     })
     router.push('/dashboard')
   }

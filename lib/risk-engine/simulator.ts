@@ -395,7 +395,7 @@ function getMitigationHistory(data: LittleShardFile): string[] {
   }
 
   // Check for legal documentation
-  if (data.legal_docs.has_will && data.legal_docs.has_trust) {
+  if (data.legal.has_will && data.legal.has_trust) {
     mitigations.push('Legal documents (will & trust) in place');
   }
 

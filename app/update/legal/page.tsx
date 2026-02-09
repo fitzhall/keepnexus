@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 
 export default function UpdateLegalPage() {
   const router = useRouter()
-  const { setup, updateTrust } = useFamilySetup()
+  const { setup, updateLegal } = useFamilySetup()
 
   const [jurisdiction, setJurisdiction] = useState('')
   const [trustExists, setTrustExists] = useState(false)
@@ -16,23 +16,24 @@ export default function UpdateLegalPage() {
   const [trustName, setTrustName] = useState('')
 
   useEffect(() => {
-    if (setup.trust) {
-      setTrustName(setup.trust.trustName || '')
-      setTrustExists(!!setup.trust.trustName)
-      setJurisdiction(setup.trust.jurisdiction || '')
-      setBitcoinInDocs(setup.trust.bitcoinInDocs || false)
-      setRufadaaFiled(setup.trust.rufadaaFiled || false)
+    if (setup.legal) {
+      setTrustName(setup.legal.trust_name || '')
+      setTrustExists(setup.legal.has_trust || false)
+      setJurisdiction(setup.legal.jurisdiction || '')
+      setBitcoinInDocs(setup.legal.bitcoin_in_docs || false)
+      setRufadaaFiled(setup.legal.rufadaa_filed || false)
     }
-  }, [setup.trust])
+  }, [setup.legal])
 
   const handleSave = () => {
-    updateTrust({
-      ...setup.trust,
-      trustName: trustExists ? trustName : undefined,
+    updateLegal({
+      ...setup.legal,
+      has_trust: trustExists,
+      trust_name: trustExists ? trustName : undefined,
       jurisdiction,
-      bitcoinInDocs,
-      rufadaaFiled,
-      lastReviewed: new Date()
+      bitcoin_in_docs: bitcoinInDocs,
+      rufadaa_filed: rufadaaFiled,
+      last_review: new Date().toISOString(),
     })
     router.push('/dashboard')
   }

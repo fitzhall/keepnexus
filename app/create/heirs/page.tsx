@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useFamilySetup, Heir } from '@/lib/context/FamilySetup'
+import { useFamilySetup } from '@/lib/context/FamilySetup'
+import type { Heir } from '@/lib/keep-core/data-model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
@@ -57,7 +58,7 @@ export default function CreateHeirsPage() {
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS · create · 4/7</div>
+        <div className="nexus-title">KEEP NEXUS · create · 4/7 · E estate integration</div>
 
         <div className="nexus-divider" />
 
