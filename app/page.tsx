@@ -26,7 +26,7 @@ export default function HomePage() {
           Manage and verify your holdings across generations. Simple. Portable. Sovereign.
         </p>
 
-        <div className="mt-12 flex gap-4">
+        <div className="mt-12">
           {!showForm ? (
             <button
               onClick={() => setShowForm(true)}
@@ -37,24 +37,12 @@ export default function HomePage() {
           ) : (
             <div className="w-full max-w-sm">
               <iframe
-                data-tally-src="https://tally.so/embed/D4dz6p?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
-                loading="lazy"
+                src="https://tally.so/embed/D4dz6p?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
                 width="100%"
-                height="200"
+                height="300"
                 frameBorder={0}
                 title="Request Access"
-                className="border-0"
-              />
-              <script
-                dangerouslySetInnerHTML={{
-                  __html: `
-                    var d=document,w="https://tally.so/widgets/embed.js";
-                    if(!d.querySelector('script[src="'+w+'"]')){
-                      var s=d.createElement("script");s.src=w;s.async=true;
-                      d.head.appendChild(s);
-                    }
-                  `,
-                }}
+                style={{ background: 'transparent' }}
               />
             </div>
           )}
