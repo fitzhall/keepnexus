@@ -50,21 +50,10 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} dark`}>
-      <body className="bg-dark-bg text-text-primary antialiased min-h-screen">
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
+      <body className="bg-zinc-950 text-zinc-50 antialiased min-h-screen">
         <Providers>
-          <div className="relative">
-            {/* Animated mesh gradient background */}
-            <div className="fixed inset-0 bg-mesh-gradient opacity-30 pointer-events-none" />
-
-            {/* Grid pattern overlay */}
-            <div className="fixed inset-0 grid-pattern opacity-[0.02] pointer-events-none" />
-
-            {/* Main content */}
-            <main className="relative z-10">
-              {children}
-            </main>
-          </div>
+          {children}
         </Providers>
       </body>
     </html>

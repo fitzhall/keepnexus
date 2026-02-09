@@ -464,6 +464,7 @@
                     <td>
                         <button class="btn ${isGenerated ? 'generated' : ''}"
                                 onclick="generateReport('${record.id}')"
+                                id="btn-${record.id}"
                                 ${isGenerated ? 'disabled' : ''}>
                             ${isGenerated ? 'GENERATED' : 'GENERATE'}
                         </button>
@@ -479,6 +480,14 @@
             const record = allSubmissions.find(r => r.id === recordId);
             if (!record) return;
 
+            // Update button to show generating state
+            const btn = document.getElementById(`btn-${recordId}`);
+            if (btn) {
+                btn.textContent = 'GENERATING...';
+                btn.disabled = true;
+                btn.style.opacity = '0.6';
+            }
+
             const fields = record.fields;
 
             // Parse the data from Airtable
@@ -487,6 +496,10 @@
                 rawData = JSON.parse(fields['Notes'] || '{}');
             } catch (e) {
                 console.error('Error parsing data:', e);
+                if (btn) {
+                    btn.textContent = 'ERROR';
+                    btn.style.opacity = '1';
+                }
                 return;
             }
 
@@ -528,9 +541,6 @@
                 birs: birs
             };
 
-            // Show progress modal
-            showProgress();
-
             // Start async job with properly structured data
             try {
                 const response = await fetch(`${API_BASE_URL}/api/audit/analyze`, {
@@ -547,18 +557,24 @@
                 const { jobId } = await response.json();
                 currentJobId = jobId;
 
-                // Start polling for progress
-                pollForProgress();
+                // Start polling for progress (silently in background)
+                pollForProgress(recordId);
 
             } catch (error) {
                 console.error('Error starting analysis:', error);
-                hideProgress();
-                alert('Failed to start analysis');
+                if (btn) {
+                    btn.textContent = 'FAILED';
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
+                alert('Failed to start analysis: ' + error.message);
             }
         }
 
         // Poll for job progress
-        async function pollForProgress() {
+        async function pollForProgress(recordId) {
+            const btn = document.getElementById(`btn-${recordId}`);
+
             pollInterval = setInterval(async () => {
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/jobs?jobId=${currentJobId}`, {
@@ -568,25 +584,28 @@
 
                     const status = await response.json();
 
-                    // Update progress display
-                    updateProgress(status.progress || 0, status.sectionsCompleted || 0, status.sectionsTotal || 8);
-
                     if (status.status === 'completed') {
                         clearInterval(pollInterval);
-                        await handleCompletedJob();
+                        await handleCompletedJob(recordId);
                     } else if (status.status === 'failed') {
                         clearInterval(pollInterval);
-                        hideProgress();
+                        if (btn) {
+                            btn.textContent = 'FAILED';
+                            btn.disabled = false;
+                            btn.style.opacity = '1';
+                        }
                         alert('Analysis failed');
                     }
                 } catch (error) {
                     console.error('Poll error:', error);
                 }
-            }, 1000);
+            }, 2000); // Poll every 2 seconds
         }
 
         // Handle completed job
-        async function handleCompletedJob() {
+        async function handleCompletedJob(recordId) {
+            const btn = document.getElementById(`btn-${recordId}`);
+
             try {
                 const response = await fetch(`${API_BASE_URL}/api/jobs?jobId=${currentJobId}`, {
                     headers: { 'Authorization': `Bearer ${API_KEY}` }
@@ -598,22 +617,31 @@
                 // Generate PDF
                 generatePDF(results.data);
 
-                // Update Airtable to mark as generated
-                // (You would implement this)
+                // Update button
+                if (btn) {
+                    btn.textContent = 'GENERATED';
+                    btn.classList.add('generated');
+                    btn.style.opacity = '1';
+                }
 
-                hideProgress();
                 await fetchSubmissions(); // Refresh list
 
             } catch (error) {
                 console.error('Error getting results:', error);
-                hideProgress();
-                alert('Failed to get results');
+                if (btn) {
+                    btn.textContent = 'ERROR';
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                }
+                alert('Failed to generate PDF: ' + error.message);
             }
         }
 
         // Generate comprehensive PDF report
         function generatePDF(report) {
             try {
+                // NOTE: Data from Airtable may have numeric fields stored as strings
+                // Use Number() conversion for all numeric operations (score, birs, holdings, etc.)
                 const { jsPDF } = window.jspdf;
                 const doc = new jsPDF();
 
@@ -624,9 +652,10 @@
                     day: 'numeric'
                 });
 
-                // Helper function for formatting currency
+                // Helper function for formatting currency (with type safety for Airtable data)
                 const formatCurrency = (num) => {
-                    return Math.round(num).toLocaleString();
+                    const numValue = Number(num) || 0;
+                    return Math.round(numValue).toLocaleString();
                 };
 
                 // Helper function for multi-line text
@@ -745,6 +774,129 @@
                     y = addMultilineText(report.executive.primary_concern, 20, y, 170);
                 }
 
+                // ============ RISK TIER CLASSIFICATION MATRIX ============
+                doc.addPage();
+                pageNum++;
+                y = 30;
+
+                doc.setFontSize(20);
+                doc.setTextColor(0, 0, 0);
+                doc.text('RISK TIER CLASSIFICATION', 20, y);
+                y += 10;
+
+                doc.setFontSize(10);
+                doc.text('The KEEP Framework categorizes Bitcoin inheritance security into five tiers based on overall readiness:', 20, y);
+                y += 15;
+
+                // Define tier data
+                const tiers = [
+                    {
+                        name: 'Institutional Grade',
+                        range: '86-100',
+                        color: [40, 167, 69],
+                        risk: 'Minimal Risk',
+                        description: '95%+ inheritance success rate. Comprehensive security, legal integration, tested emergency access, and active maintenance protocols.'
+                    },
+                    {
+                        name: 'Strong Foundation',
+                        range: '71-85',
+                        color: [23, 162, 184],
+                        risk: 'Low Risk',
+                        description: '70-94% success rate. Solid security and legal framework with some gaps in access testing or maintenance procedures.'
+                    },
+                    {
+                        name: 'Exposed',
+                        range: '51-70',
+                        color: [255, 193, 7],
+                        risk: 'Moderate Risk',
+                        description: '40-69% success rate. Basic security measures in place but significant gaps in legal integration, emergency access, or testing.'
+                    },
+                    {
+                        name: 'Major Gaps',
+                        range: '31-50',
+                        color: [253, 126, 20],
+                        risk: 'High Risk',
+                        description: '10-39% success rate. Critical vulnerabilities across multiple pillars. Family likely unable to access Bitcoin without expert help.'
+                    },
+                    {
+                        name: 'Critical Risk',
+                        range: '0-30',
+                        color: [220, 53, 69],
+                        risk: 'Extreme Risk',
+                        description: '<10% success rate. Fundamental failures in security, legal, access, and maintenance. Bitcoin likely lost upon inheritance.'
+                    }
+                ];
+
+                // Render tier table
+                const tableStartY = y;
+                const rowHeight = 28;
+                const colWidths = [40, 25, 30, 75]; // Name, Range, Risk, Description
+
+                tiers.forEach((tier, index) => {
+                    // Color bar
+                    doc.setFillColor(...tier.color);
+                    doc.rect(20, y, 5, rowHeight, 'F');
+
+                    // Tier name
+                    doc.setFontSize(10);
+                    doc.setFont(undefined, 'bold');
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(tier.name, 28, y + 6);
+
+                    // Score range
+                    doc.setFont(undefined, 'normal');
+                    doc.text(tier.range, 70, y + 6);
+
+                    // Risk level
+                    doc.setTextColor(...tier.color);
+                    doc.setFont(undefined, 'bold');
+                    doc.text(tier.risk, 98, y + 6);
+                    doc.setTextColor(0, 0, 0);
+                    doc.setFont(undefined, 'normal');
+
+                    // Description (wrapped)
+                    doc.setFontSize(9);
+                    const descLines = doc.splitTextToSize(tier.description, 70);
+                    descLines.forEach((line, i) => {
+                        doc.text(line, 28, y + 13 + (i * 5));
+                    });
+
+                    // Border around row
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(20, y, 170, rowHeight);
+
+                    y += rowHeight;
+                });
+
+                // Add current score indicator
+                y += 10;
+                doc.setFontSize(11);
+                doc.setFont(undefined, 'bold');
+                doc.text('Your Current Position:', 20, y);
+                doc.setFont(undefined, 'normal');
+
+                const currentScore = report.current_state.keep_score;
+                const currentTier = report.current_state.tier;
+
+                y += 7;
+                doc.setFillColor(245, 245, 245);
+                doc.rect(20, y - 3, 170, 12, 'F');
+
+                // Determine tier color for current score
+                let currentColor = [220, 53, 69]; // default red
+                if (currentScore >= 86) currentColor = [40, 167, 69];
+                else if (currentScore >= 71) currentColor = [23, 162, 184];
+                else if (currentScore >= 51) currentColor = [255, 193, 7];
+                else if (currentScore >= 31) currentColor = [253, 126, 20];
+
+                doc.setTextColor(...currentColor);
+                doc.setFont(undefined, 'bold');
+                doc.setFontSize(12);
+                doc.text(`${currentTier} (${currentScore}/100)`, 25, y + 4);
+                doc.setTextColor(0, 0, 0);
+                doc.setFont(undefined, 'normal');
+                doc.setFontSize(10);
+
                 // ============ KEEP FRAMEWORK ANALYSIS ============
                 doc.addPage();
                 pageNum++;
@@ -784,17 +936,18 @@
                     doc.setFont(undefined, 'bold');
                     doc.text(`${pillar.name}`, 20, 10);
 
-                    // Score card section
+                    // Score card section (expanded for weight row)
                     doc.setTextColor(0, 0, 0);
                     doc.setFillColor(245, 245, 245);
-                    doc.rect(20, y, 170, 35, 'F');
+                    doc.rect(20, y, 170, 43, 'F');
 
                     y += 8;
                     doc.setFontSize(11);
                     doc.setFont(undefined, 'bold');
                     doc.text('KEEP Score:', 25, y);
                     doc.setFont(undefined, 'normal');
-                    const score = pillar.data?.score || 0;
+                    // Convert to number to handle Airtable string coercion
+                    const score = Number(pillar.data?.score) || 0;
                     doc.text(`${score.toFixed(1)} / 10`, 70, y);
 
                     // Risk level indicator
@@ -805,8 +958,16 @@
                     const riskLevel = score < 3 ? 'Critical' : score < 5 ? 'High' : score < 7 ? 'Moderate' : 'Low';
                     const riskColor = score < 3 ? [220, 53, 69] : score < 5 ? [255, 193, 7] : score < 7 ? [255, 193, 7] : [40, 167, 69];
                     doc.setTextColor(...riskColor);
-                    doc.text(`● ${riskLevel}`, 70, y);
+                    doc.text(riskLevel, 70, y);
                     doc.setTextColor(0, 0, 0);
+
+                    // Pillar weight
+                    y += 8;
+                    doc.setFont(undefined, 'bold');
+                    doc.text('Weight:', 25, y);
+                    doc.setFont(undefined, 'normal');
+                    const weight = pillar.data?.weight || '0%';
+                    doc.text(weight, 70, y);
 
                     // Visual progress bar
                     y += 8;

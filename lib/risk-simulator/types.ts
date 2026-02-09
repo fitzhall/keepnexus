@@ -51,6 +51,7 @@ export interface MultisigSetup {
   totalKeys: number      // N in M-of-N (e.g., 5)
   keys: Key[]
   family: string         // "Chen Family"
+  platform?: string      // "Theya" | "Casa" | "Unchained" | "Nunchuk" | etc.
   createdAt: Date
 }
 
@@ -95,4 +96,51 @@ export interface RiskAnalysis {
   results: SimulationResult[]
   resilienceScore: number        // 0-100 percentage
   criticalRisks: string[]        // List of critical issues
+}
+
+// ============================================================================
+// CORE 4 TYPES
+// ============================================================================
+
+/**
+ * A labeled vault wrapping a multisig setup
+ */
+export interface Vault {
+  id: string
+  label: string                  // "cold", "warm", "hot", or custom
+  multisig: MultisigSetup
+  balanceBtc?: number            // manual entry
+  notes?: string
+}
+
+/**
+ * Family charter — mission, principles, review cadence
+ */
+export interface FamilyCharter {
+  mission: string
+  principles: string[]           // simple string array
+  reviewFrequency: 'quarterly' | 'annual'
+  lastReviewed?: Date
+}
+
+/**
+ * Audit trail entry for tracking all state changes
+ */
+export interface NexusAuditEntry {
+  id: string
+  timestamp: Date
+  action: string                 // e.g. "vault.created", "charter.updated"
+  details: string
+  field?: string
+  oldValue?: string
+  newValue?: string
+}
+
+/**
+ * THAP hash history entry
+ */
+export interface ThapHistoryEntry {
+  hash: string
+  timestamp: Date
+  note?: string
 }

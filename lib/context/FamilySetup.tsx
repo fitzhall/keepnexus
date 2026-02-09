@@ -7,7 +7,8 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { MultisigSetup, Key } from '@/lib/risk-simulator/types'
+import { MultisigSetup, Key, Vault, FamilyCharter, NexusAuditEntry, ThapHistoryEntry } from '@/lib/risk-simulator/types'
+import { calculateThapHash } from '@/lib/thap/hash'
 import {
   ScheduleEvent,
   DrillRecord,
@@ -49,6 +50,9 @@ export interface TrustInfo {
   dateEstablished?: Date
   lastReviewed?: Date
   documentIds?: string[] // References to uploaded documents
+  jurisdiction?: string
+  bitcoinInDocs?: boolean
+  rufadaaFiled?: boolean
 }
 
 // Complete Family Setup (v1.2.0 - File-First System)
@@ -70,6 +74,13 @@ export interface FamilySetupData {
   taxSettings: TaxSettings
   captainSettings: CaptainSettings
   foreverSettings: ForeverSettings
+
+  // Core 4: Multi-wallet, Charter, THAP, Audit
+  vaults: Vault[]
+  charter: FamilyCharter
+  auditTrail: NexusAuditEntry[]
+  thapHash: string
+  thapHistory: ThapHistoryEntry[]
 
   // Metadata
   lastUpdated: Date
@@ -102,6 +113,17 @@ interface FamilySetupContextType {
   updateCaptainSettings: (settings: CaptainSettings) => void
   updateForeverSettings: (settings: ForeverSettings) => void
 
+  // Core 4: Vault management
+  addVault: (vault: Vault) => void
+  updateVault: (id: string, vault: Partial<Vault>) => void
+  removeVault: (id: string) => void
+
+  // Core 4: Charter
+  updateCharter: (charter: FamilyCharter) => void
+
+  // Core 4: Audit
+  addAuditEntry: (action: string, details: string, field?: string, oldValue?: string, newValue?: string) => void
+
   // File operations
   loadFromFile: (data: FamilySetupData) => void
   resetToDefault: () => void
@@ -109,7 +131,83 @@ interface FamilySetupContextType {
 
 const FamilySetupContext = createContext<FamilySetupContextType | undefined>(undefined)
 
-// Default setup (based on Chen Family demo)
+// Empty setup for new users (triggers create wizard)
+const EMPTY_SETUP: FamilySetupData = {
+  familyName: '',
+  multisig: {
+    family: '',
+    threshold: 0,
+    totalKeys: 0,
+    keys: [],
+    createdAt: new Date()
+  },
+  heirs: [],
+  trust: {},
+  governanceRules: [],
+  scheduleEvents: [],
+  drillHistory: [],
+  drillSettings: {
+    frequency: 'quarterly',
+    participants: [],
+    notificationDays: 7,
+    autoReminder: true,
+    lastDrillDate: undefined as unknown as Date,
+    nextDrillDate: undefined as unknown as Date,
+  },
+  vaultSettings: {
+    walletType: 'hardware',
+    lastRotationDate: undefined as unknown as Date,
+    rotationFrequency: 90,
+    backupLocations: [],
+    testTransactionCompleted: false
+  },
+  taxSettings: {
+    reportingFrequency: 'quarterly',
+    cpaEmail: '',
+    cpaName: '',
+    autoGenerate: false,
+    lastReportDate: undefined as unknown as Date,
+    nextReportDue: undefined as unknown as Date,
+    taxStrategy: 'hodl'
+  },
+  captainSettings: {
+    advisorName: '',
+    advisorEmail: '',
+    advisorPhone: '',
+    advisorFirm: '',
+    serviceTier: 'nexus',
+    annualReviewDate: undefined as unknown as Date,
+    lastCheckupDate: undefined as unknown as Date,
+    professionalNetwork: {
+      attorney: '',
+      cpa: '',
+      custodian: ''
+    }
+  },
+  foreverSettings: {
+    archivalEnabled: false,
+    redundantLocations: [],
+    lastBackupDate: undefined as unknown as Date,
+    generationPlan: '',
+    timeLockInstructions: ''
+  },
+
+  // Core 4 defaults
+  vaults: [],
+  charter: {
+    mission: '',
+    principles: [],
+    reviewFrequency: 'annual',
+  },
+  auditTrail: [],
+  thapHash: '',
+  thapHistory: [],
+
+  lastUpdated: new Date(),
+  createdAt: new Date()
+}
+
+// Demo setup (Chen Family) for testing
 const DEFAULT_SETUP: FamilySetupData = {
   familyName: 'Chen Family',
   multisig: {
@@ -321,13 +419,30 @@ const DEFAULT_SETUP: FamilySetupData = {
     timeLockInstructions: 'Review time-lock vaults annually; activate emergency protocol if primary holder inactive >90 days'
   },
 
+  // Core 4 defaults for demo
+  vaults: [],
+  charter: {
+    mission: 'Preserve and grow family Bitcoin wealth across generations with security, transparency, and shared governance.',
+    principles: [
+      'Never store all keys in one location',
+      'Review inheritance plan quarterly',
+      'All heirs must complete annual drill'
+    ],
+    reviewFrequency: 'quarterly',
+    lastReviewed: new Date('2024-10-15'),
+  },
+  auditTrail: [],
+  thapHash: '',
+  thapHistory: [],
+
   // Metadata
   lastUpdated: new Date(),
   createdAt: new Date()
 }
 
 export function FamilySetupProvider({ children }: { children: ReactNode }) {
-  const [setup, setSetup] = useState<FamilySetupData>(DEFAULT_SETUP)
+  const [setup, setSetup] = useState<FamilySetupData>(EMPTY_SETUP)
+  const [isLoaded, setIsLoaded] = useState(false)
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -335,29 +450,66 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
     if (stored) {
       try {
         const parsed = JSON.parse(stored, (key, value) => {
-          // Revive all Date objects (expanded for v1.2.0)
           const dateFields = [
             'lastUpdated', 'createdAt', 'lastReviewed', 'lastExecuted',
             'date', 'lastDrillDate', 'nextDrillDate', 'lastRotationDate',
             'lastReportDate', 'nextReportDue', 'annualReviewDate',
-            'lastCheckupDate', 'lastBackupDate'
+            'lastCheckupDate', 'lastBackupDate', 'timestamp'
           ]
           if (dateFields.includes(key)) {
             return value ? new Date(value) : undefined
           }
           return value
         })
+        // Migration: if vaults[] missing but multisig has keys, wrap into vaults[0]
+        if ((!parsed.vaults || parsed.vaults.length === 0) && parsed.multisig?.keys?.length > 0) {
+          parsed.vaults = [{
+            id: 'vault-primary',
+            label: 'primary',
+            multisig: parsed.multisig,
+          }]
+        }
+        // Ensure Core 4 fields exist
+        if (!parsed.charter) parsed.charter = { mission: '', principles: [], reviewFrequency: 'annual' }
+        if (!parsed.auditTrail) parsed.auditTrail = []
+        if (!parsed.thapHash) parsed.thapHash = ''
+        if (!parsed.thapHistory) parsed.thapHistory = []
         setSetup(parsed)
       } catch (err) {
         console.error('Failed to load family setup from storage:', err)
       }
     }
+    setIsLoaded(true)
   }, [])
 
-  // Save to localStorage whenever setup changes
+  // Save to localStorage whenever setup changes (skip until initial load completes)
   useEffect(() => {
+    if (!isLoaded) return
     localStorage.setItem('familySetup', JSON.stringify(setup))
-  }, [setup])
+  }, [setup, isLoaded])
+
+  // THAP: Auto-recalculate hash when canonical data fields change
+  useEffect(() => {
+    if (!setup.familyName) return
+
+    calculateThapHash(setup).then(newHash => {
+      if (newHash !== setup.thapHash && setup.thapHash !== '') {
+        // Hash changed — push old hash to history
+        setSetup(prev => ({
+          ...prev,
+          thapHistory: [...prev.thapHistory, {
+            hash: prev.thapHash,
+            timestamp: new Date(),
+          }],
+          thapHash: newHash,
+        }))
+      } else if (setup.thapHash === '') {
+        // First calculation
+        setSetup(prev => ({ ...prev, thapHash: newHash }))
+      }
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [setup.familyName, setup.multisig, setup.vaults, setup.heirs, setup.charter, setup.trust, setup.governanceRules, setup.captainSettings, setup.drillSettings, setup.taxSettings])
 
   const updateFamilyName = (name: string) => {
     setSetup(prev => ({
@@ -366,6 +518,7 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
       multisig: { ...prev.multisig, family: name },
       lastUpdated: new Date()
     }))
+    addAuditEntry('family.updated', `Family name changed to "${name}"`, 'familyName')
   }
 
   const updateMultisig = (multisig: MultisigSetup) => {
@@ -374,6 +527,7 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
       multisig,
       lastUpdated: new Date()
     }))
+    addAuditEntry('multisig.updated', `Multisig updated: ${multisig.threshold}-of-${multisig.totalKeys}`)
   }
 
   const updateHeirs = (heirs: Heir[]) => {
@@ -382,6 +536,7 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
       heirs,
       lastUpdated: new Date()
     }))
+    addAuditEntry('heirs.updated', `Heirs updated: ${heirs.length} beneficiaries`)
   }
 
   const updateTrust = (trust: TrustInfo) => {
@@ -390,6 +545,7 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
       trust,
       lastUpdated: new Date()
     }))
+    addAuditEntry('trust.updated', `Trust info updated`)
   }
 
   const updateGovernanceRules = (rules: GovernanceRule[]) => {
@@ -499,6 +655,71 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
     }))
   }
 
+  // ── Core 4: Vault methods ──
+
+  const addAuditEntry = (action: string, details: string, field?: string, oldValue?: string, newValue?: string) => {
+    const entry: NexusAuditEntry = {
+      id: `audit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      timestamp: new Date(),
+      action,
+      details,
+      field,
+      oldValue,
+      newValue,
+    }
+    setSetup(prev => ({
+      ...prev,
+      auditTrail: [...prev.auditTrail, entry],
+    }))
+  }
+
+  const addVault = (vault: Vault) => {
+    setSetup(prev => ({
+      ...prev,
+      vaults: [...prev.vaults, vault],
+      // Keep multisig in sync with first vault for backward compat
+      multisig: prev.vaults.length === 0 ? vault.multisig : prev.multisig,
+      lastUpdated: new Date(),
+    }))
+    addAuditEntry('vault.created', `Added vault "${vault.label}"`)
+  }
+
+  const updateVault = (id: string, updates: Partial<Vault>) => {
+    setSetup(prev => {
+      const vaults = prev.vaults.map(v => v.id === id ? { ...v, ...updates } : v)
+      return {
+        ...prev,
+        vaults,
+        // Keep multisig in sync with first vault
+        multisig: vaults[0]?.multisig || prev.multisig,
+        lastUpdated: new Date(),
+      }
+    })
+    addAuditEntry('vault.updated', `Updated vault "${id}"`)
+  }
+
+  const removeVault = (id: string) => {
+    setSetup(prev => {
+      const vaults = prev.vaults.filter(v => v.id !== id)
+      return {
+        ...prev,
+        vaults,
+        multisig: vaults[0]?.multisig || prev.multisig,
+        lastUpdated: new Date(),
+      }
+    })
+    addAuditEntry('vault.removed', `Removed vault "${id}"`)
+  }
+
+  const updateCharter = (charter: FamilyCharter) => {
+    setSetup(prev => ({
+      ...prev,
+      charter,
+      lastUpdated: new Date(),
+    }))
+    addAuditEntry('charter.updated', 'Family charter updated')
+  }
+
   const loadFromFile = (data: FamilySetupData) => {
     setSetup({
       ...data,
@@ -507,6 +728,15 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
   }
 
   const resetToDefault = () => {
+    setSetup({
+      ...EMPTY_SETUP,
+      lastUpdated: new Date(),
+      createdAt: new Date()
+    })
+    localStorage.removeItem('familySetup')
+  }
+
+  const loadDemoData = () => {
     setSetup({
       ...DEFAULT_SETUP,
       lastUpdated: new Date(),
@@ -537,6 +767,12 @@ export function FamilySetupProvider({ children }: { children: ReactNode }) {
         updateTaxSettings,
         updateCaptainSettings,
         updateForeverSettings,
+        // Core 4
+        addVault,
+        updateVault,
+        removeVault,
+        updateCharter,
+        addAuditEntry,
         // File operations
         loadFromFile,
         resetToDefault

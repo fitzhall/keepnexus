@@ -8,170 +8,125 @@
   :root {
     --font-inter: 'Inter', sans-serif;
     --font-jetbrains-mono: 'JetBrains Mono', monospace;
-
-    /* Custom CSS variables for dynamic theming */
-    --primary: 0 212 255;
-    --secondary: 124 58 237;
-    --success: 16 185 129;
-    --danger: 239 68 68;
-    --warning: 245 158 11;
-
-    /* Glass morphism variables */
-    --glass-blur: 12px;
-    --glass-opacity: 0.05;
-    --glass-border: rgba(255, 255, 255, 0.1);
   }
 
-
   html {
-    @apply bg-dark-bg text-text-primary antialiased;
+    @apply bg-zinc-950 text-zinc-50 antialiased;
     font-family: var(--font-inter);
   }
 
   body {
-    @apply bg-dark-bg text-text-primary min-h-screen;
-    background-image: var(--mesh-gradient);
-    background-attachment: fixed;
-    background-size: 200% 200%;
+    @apply bg-zinc-950 text-zinc-50 min-h-screen;
   }
 
-  /* Custom scrollbar */
+  /* Custom scrollbar - subtle */
   ::-webkit-scrollbar {
     @apply w-2;
   }
 
   ::-webkit-scrollbar-track {
-    @apply bg-dark-surface;
+    @apply bg-zinc-900;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply bg-dark-border rounded-full hover:bg-dark-hover;
+    @apply bg-zinc-700 rounded-full hover:bg-zinc-600;
   }
 
   /* Selection colors */
   ::selection {
-    @apply bg-primary/30 text-primary;
+    @apply bg-zinc-700 text-zinc-50;
   }
 }
 
 @layer components {
-  /* Glass morphism card */
-  .glass-card {
-    @apply bg-glass-white backdrop-blur-md border border-glass-light rounded-2xl;
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  /* Keep Nexus v2 - Text-based UI */
+  .nexus {
+    @apply bg-zinc-950 text-zinc-100 font-mono min-h-screen;
   }
 
-  /* Glow button */
-  .btn-glow {
-    @apply relative overflow-hidden transition-all duration-300;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+  .nexus-container {
+    @apply max-w-xl mx-auto px-6 py-12;
   }
 
-  .btn-glow:hover {
-    box-shadow: 0 0 30px rgba(0, 212, 255, 0.5);
-    transform: translateY(-2px);
+  .nexus-title {
+    @apply text-xs font-medium tracking-widest uppercase text-zinc-500;
   }
 
-  .btn-glow:active {
-    transform: translateY(0);
+  .nexus-family {
+    @apply text-lg text-zinc-300 mt-1;
   }
 
-  /* Gradient text */
-  .gradient-text {
-    @apply bg-gradient-primary bg-clip-text text-transparent;
+  .nexus-divider {
+    @apply border-t border-zinc-800 my-8;
   }
 
-  /* Neon text glow */
-  .neon-text {
-    text-shadow:
-      0 0 10px rgba(0, 212, 255, 0.8),
-      0 0 20px rgba(0, 212, 255, 0.6),
-      0 0 30px rgba(0, 212, 255, 0.4);
+  .nexus-hero-btc {
+    @apply text-4xl md:text-5xl text-zinc-50 font-mono tracking-tight;
   }
 
-  /* Status indicators */
-  .status-green {
-    @apply bg-success/10 border border-success/30 text-success;
-    box-shadow: 0 0 20px rgba(16, 185, 129, 0.2);
+  .nexus-hero-fiat {
+    @apply text-lg text-zinc-500 mt-2;
   }
 
-  .status-red {
-    @apply bg-danger/10 border border-danger/30 text-danger;
-    box-shadow: 0 0 20px rgba(239, 68, 68, 0.2);
+  .nexus-status {
+    @apply flex items-center gap-2 mt-4;
   }
 
-  .status-yellow {
-    @apply bg-warning/10 border border-warning/30 text-warning;
-    box-shadow: 0 0 20px rgba(245, 158, 11, 0.2);
+  .nexus-status-dot {
+    @apply w-2 h-2 rounded-full;
   }
 
-  .status-blue {
-    @apply bg-primary/10 border border-primary/30 text-primary;
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.2);
+  .nexus-status-dot.healthy { @apply bg-green-500; }
+  .nexus-status-dot.attention { @apply bg-yellow-500; }
+  .nexus-status-dot.critical { @apply bg-red-500; }
+
+  .nexus-row {
+    @apply flex justify-between text-sm py-1;
   }
 
-  /* Grid background pattern */
-  .grid-pattern {
-    background-image:
-      linear-gradient(rgba(0, 212, 255, 0.05) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(0, 212, 255, 0.05) 1px, transparent 1px);
-    background-size: 50px 50px;
+  .nexus-row-label {
+    @apply text-zinc-500 w-24;
   }
 
-  /* Animated gradient background */
-  .animated-gradient {
-    background: linear-gradient(
-      -45deg,
-      #000000,
-      #0A0A0A,
-      #111111,
-      #0A0A0A
-    );
-    background-size: 400% 400%;
-    animation: gradient-shift 15s ease infinite;
+  .nexus-row-value {
+    @apply text-zinc-300 flex-1;
   }
 
-  /* Loading skeleton */
-  .skeleton {
-    @apply bg-dark-surface rounded-lg relative overflow-hidden;
+  .nexus-actions {
+    @apply flex gap-4 mt-8;
   }
 
-  .skeleton::after {
-    content: '';
-    @apply absolute inset-0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgba(255, 255, 255, 0.05),
-      transparent
-    );
-    animation: skeleton-loading 1.5s ease-in-out infinite;
+  .nexus-btn {
+    @apply px-4 py-2 text-sm text-zinc-400 border border-zinc-700
+           hover:text-zinc-200 hover:border-zinc-500 transition-colors;
   }
 
-  @keyframes skeleton-loading {
-    0% {
-      transform: translateX(-100%);
-    }
-    100% {
-      transform: translateX(100%);
-    }
+  .nexus-btn-primary {
+    @apply px-4 py-2 text-sm text-zinc-900 bg-zinc-100
+           hover:bg-zinc-200 transition-colors;
   }
 
-  /* Threat score animation */
-  .threat-pulse {
-    animation: pulse-glow 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  /* Form inputs for update pages */
+  .nexus-input {
+    @apply bg-transparent border-b border-zinc-700 text-zinc-200
+           focus:border-zinc-400 outline-none px-1 py-0.5;
   }
 
-  /* Matrix grid cells */
-  .matrix-cell {
-    @apply bg-dark-surface/50 border border-dark-border rounded-lg p-4
-           hover:bg-dark-hover/50 hover:border-primary/30
-           transition-all duration-200 cursor-pointer;
+  .nexus-select {
+    @apply bg-zinc-900 border border-zinc-700 text-zinc-200
+           focus:border-zinc-400 outline-none px-2 py-1 rounded;
   }
 
-  .matrix-cell:hover {
-    box-shadow: 0 0 20px rgba(0, 212, 255, 0.1);
+  .nexus-checkbox {
+    @apply w-4 h-4 bg-zinc-900 border border-zinc-700 rounded
+           checked:bg-zinc-100 checked:border-zinc-100;
   }
+
+  .nexus-textarea {
+    @apply bg-zinc-900 border border-zinc-700 text-zinc-200
+           focus:border-zinc-400 outline-none px-3 py-2 rounded resize-none;
+  }
+
 }
 
 @layer utilities {
@@ -192,29 +147,6 @@
 
   /* Custom focus styles */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-primary/50 focus:ring-offset-2 focus:ring-offset-dark-bg;
-  }
-
-  /* Hover lift effect */
-  .hover-lift {
-    @apply transition-transform duration-200 hover:-translate-y-1;
-  }
-
-  /* Glow borders */
-  .border-glow {
-    @apply border border-primary/30 shadow-glow-sm;
-  }
-
-  /* Backdrop effects */
-  .backdrop-heavy {
-    backdrop-filter: blur(20px) saturate(180%);
-  }
-
-  .backdrop-medium {
-    backdrop-filter: blur(12px) saturate(150%);
-  }
-
-  .backdrop-light {
-    backdrop-filter: blur(6px) saturate(120%);
+    @apply focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-zinc-950;
   }
 }
