@@ -8,6 +8,20 @@ const ACCESS_KEY = 'keep_access_token'
 // Routes that don't require access
 const PUBLIC_ROUTES = ['/', '/verify']
 
+export function hasValidAccess(): boolean {
+  if (typeof window === 'undefined') return false
+  const token = localStorage.getItem(ACCESS_KEY)
+  return token !== null && token.startsWith('KEEP-')
+}
+
+export function grantAccess(code: string) {
+  localStorage.setItem(ACCESS_KEY, code)
+}
+
+export function revokeAccess() {
+  localStorage.removeItem(ACCESS_KEY)
+}
+
 export function useAccessGate() {
   const router = useRouter()
   const pathname = usePathname()

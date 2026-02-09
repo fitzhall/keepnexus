@@ -2,30 +2,14 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { grantAccess } from '@/lib/hooks/useAccessGate'
 
 // Valid access codes — add codes here when you grant access
-// In production, you could fetch these from an API or env variable
 const VALID_CODES = new Set([
   'KEEP-VAULT-7X9M',
   'KEEP-NEXUS-4R2K',
   'KEEP-ALPHA-8W5J',
 ])
-
-const ACCESS_KEY = 'keep_access_token'
-
-export function hasValidAccess(): boolean {
-  if (typeof window === 'undefined') return false
-  const token = localStorage.getItem(ACCESS_KEY)
-  return token !== null && token.startsWith('KEEP-')
-}
-
-export function grantAccess(code: string) {
-  localStorage.setItem(ACCESS_KEY, code)
-}
-
-export function revokeAccess() {
-  localStorage.removeItem(ACCESS_KEY)
-}
 
 export default function VerifyPage() {
   const router = useRouter()
