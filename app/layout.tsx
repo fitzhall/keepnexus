@@ -16,22 +16,22 @@ const jetbrainsMono = JetBrains_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'KeepNexus - The 9-minute Bitcoin Governance OS',
-  description: 'Turn any Bitcoin stack into a self-driving trust that texts your heirs, your lawyer, and your CPA—automatically.',
-  keywords: 'Bitcoin, inheritance, trust, governance, multisig, security',
-  authors: [{ name: 'KeepNexus Team' }],
+  title: 'Keep Nexus — The Operations Layer Your Bitcoin Custody Is Missing',
+  description: 'Manage and verify your Bitcoin holdings across generations. Simple. Portable. Sovereign.',
+  keywords: 'Bitcoin, custody, inheritance, estate planning, multisig, governance, KEEP',
+  authors: [{ name: 'Keep Nexus' }],
   openGraph: {
-    title: 'KeepNexus - The 9-minute Bitcoin Governance OS',
-    description: 'Turn any Bitcoin stack into a self-driving trust',
+    title: 'Keep Nexus — Bitcoin Custody Operations',
+    description: 'Manage and verify your Bitcoin holdings across generations. Simple. Portable. Sovereign.',
     type: 'website',
     locale: 'en_US',
     url: 'https://keep.co',
-    siteName: 'KeepNexus',
+    siteName: 'Keep Nexus',
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'KeepNexus - Bitcoin Governance Made Simple',
-    description: 'Turn any Bitcoin stack into a self-driving trust',
+    title: 'Keep Nexus — Bitcoin Custody Operations',
+    description: 'Manage and verify your Bitcoin holdings across generations. Simple. Portable. Sovereign.',
     creator: '@keepnexus',
   },
   icons: {
