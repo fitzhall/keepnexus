@@ -14,6 +14,8 @@
 // ============================================================================
 
 export type KeyRole = 'primary' | 'spouse' | 'child' | 'attorney' | 'custodian' | 'friend' | 'other';
+export type FunctionalRole = 'owner' | 'signer' | 'protector';
+export type WalletTier = 'warm' | 'cold';
 export type StorageType = 'hardware-wallet' | 'paper' | 'vault' | 'digital' | 'custodian' | 'mobile';
 export type ScenarioOutcome = 'recoverable' | 'at-risk' | 'locked';
 export type TrendDirection = 'improving' | 'stable' | 'declining';
@@ -59,6 +61,7 @@ export interface KeyHolder {
   key_age_days: number;
   is_sharded: boolean;
   shard_config?: ShardConfiguration;
+  functional_role?: FunctionalRole;
   contact?: {
     email?: string;
     phone?: string;
@@ -76,6 +79,7 @@ export interface Wallet {
   label?: string;
   platform?: string;                   // Theya, Casa, Unchained, Nunchuk, etc.
   balance_sats?: number;
+  tier?: WalletTier;
 }
 
 export interface GovernanceRule {

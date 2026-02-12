@@ -19,6 +19,7 @@ export async function calculateThapHash(shard: LittleShardFile): Promise<string>
       threshold: w.threshold,
       total_keys: w.total_keys,
       platform: w.platform,
+      tier: w.tier || null,
     })),
     keyholders: shard.keyholders.map(k => ({
       id: k.id,
@@ -26,6 +27,7 @@ export async function calculateThapHash(shard: LittleShardFile): Promise<string>
       role: k.role,
       storage_type: k.storage_type,
       location: k.location,
+      functional_role: k.functional_role || null,
     })),
     heirs: shard.heirs.map(h => ({
       id: h.id,

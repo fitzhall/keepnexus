@@ -2,22 +2,21 @@
 
 import { useState, useEffect } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
-import type { Wallet } from '@/lib/keep-core/data-model'
+import type { Wallet, WalletTier } from '@/lib/keep-core/data-model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 
 const PLATFORMS = ['Theya', 'Casa', 'Unchained', 'Nunchuk', 'Other']
-const LABEL_PRESETS = ['cold', 'warm', 'hot']
 
 export default function CreateVaultPage() {
   const router = useRouter()
   const { setup, addWallet } = useFamilySetup()
 
-  const [label, setLabel] = useState('cold')
-  const [customLabel, setCustomLabel] = useState('')
+  const [label, setLabel] = useState('')
   const [platform, setPlatform] = useState('Unchained')
   const [quorumM, setQuorumM] = useState(2)
   const [quorumN, setQuorumN] = useState(3)
+  const [tier, setTier] = useState<WalletTier>('cold')
 
   // Pre-fill from first existing wallet if present
   useEffect(() => {
@@ -26,30 +25,34 @@ export default function CreateVaultPage() {
       setQuorumM(first.threshold || 2)
       setQuorumN(first.total_keys || 3)
       if (first.platform) setPlatform(first.platform)
-      if (first.label) {
-        if (LABEL_PRESETS.includes(first.label)) {
-          setLabel(first.label)
-        } else {
-          setLabel('custom')
-          setCustomLabel(first.label)
-        }
-      }
+      if (first.tier) setTier(first.tier)
+      if (first.label) setLabel(first.label)
     }
   }, [setup.wallets])
+
+  // Default tier based on quorum: 1-of-1 = warm, otherwise cold
+  useEffect(() => {
+    if (quorumM === 1 && quorumN === 1) {
+      setTier('warm')
+    } else {
+      setTier('cold')
+    }
+  }, [quorumM, quorumN])
 
   const handleNext = () => {
     if (quorumM < 1 || quorumM > quorumN || quorumN > 15) return
 
-    const vaultLabel = label === 'custom' ? (customLabel.trim() || 'primary') : label
+    const vaultLabel = label.trim() || (tier === 'warm' ? 'spending' : 'vault')
 
     const wallet: Wallet = {
-      id: `wallet-${vaultLabel}-${Date.now()}`,
+      id: `wallet-${vaultLabel.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`,
       descriptor: '',
       threshold: quorumM,
       total_keys: quorumN,
       created_at: new Date().toISOString(),
       label: vaultLabel,
       platform,
+      tier,
     }
     addWallet(wallet)
 
@@ -65,33 +68,34 @@ export default function CreateVaultPage() {
 
         <div className="space-y-6">
           <div>
-            <label className="text-sm text-zinc-500 block mb-2">vault label</label>
-            <div className="flex gap-2 flex-wrap">
-              {LABEL_PRESETS.map(preset => (
+            <label className="text-sm text-zinc-500 block mb-2">wallet tier</label>
+            <div className="flex gap-2">
+              {(['warm', 'cold'] as WalletTier[]).map(t => (
                 <button
-                  key={preset}
-                  className={`nexus-btn ${label === preset ? 'nexus-btn-primary' : ''}`}
-                  onClick={() => setLabel(preset)}
+                  key={t}
+                  className={`nexus-btn ${tier === t ? 'nexus-btn-primary' : ''}`}
+                  onClick={() => setTier(t)}
                 >
-                  [{preset}]
+                  [{t}]
                 </button>
               ))}
-              <button
-                className={`nexus-btn ${label === 'custom' ? 'nexus-btn-primary' : ''}`}
-                onClick={() => setLabel('custom')}
-              >
-                [custom]
-              </button>
             </div>
-            {label === 'custom' && (
-              <input
-                className="nexus-input w-full mt-2"
-                type="text"
-                placeholder="custom label"
-                value={customLabel}
-                onChange={(e) => setCustomLabel(e.target.value)}
-              />
-            )}
+            <p className="text-xs text-zinc-500 mt-2">
+              {tier === 'warm'
+                ? 'Warm wallets are for spending. Owner can sign alone.'
+                : 'Cold vaults are for long-term holdings. Distributed signing required.'}
+            </p>
+          </div>
+
+          <div>
+            <label className="text-sm text-zinc-500 block mb-2">wallet name</label>
+            <input
+              className="nexus-input w-full"
+              type="text"
+              placeholder={tier === 'warm' ? 'e.g. spending, daily' : 'e.g. vault, savings'}
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
           </div>
 
           <div>

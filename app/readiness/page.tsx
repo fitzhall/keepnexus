@@ -11,6 +11,22 @@ const PILLAR_META: { key: string; letter: string; label: string }[] = [
   { key: 'P', letter: 'P', label: 'professional stewardship' },
 ]
 
+function computeScore(pillars: Record<string, PillarReport>): number {
+  const pillarScores = Object.values(pillars).map(p => {
+    if (p.items.length === 0) return 0
+    const done = p.items.filter(i => i.done).length
+    return Math.round((done / p.items.length) * 100)
+  })
+  return Math.round(pillarScores.reduce((a, b) => a + b, 0) / pillarScores.length)
+}
+
+function getScoreColor(val: number): string {
+  if (val >= 80) return 'text-green-500'
+  if (val >= 60) return 'text-yellow-500'
+  if (val >= 40) return 'text-orange-400'
+  return 'text-red-400'
+}
+
 export default function ReadinessPage() {
   const { setup } = useFamilySetup()
   const report = calculatePillarReport(setup)
@@ -24,6 +40,7 @@ export default function ReadinessPage() {
 
   const totalItems = Object.values(pillars).flatMap(p => p.items)
   const doneCount = totalItems.filter(i => i.done).length
+  const score = computeScore(pillars)
 
   return (
     <main className="nexus">
@@ -32,10 +49,40 @@ export default function ReadinessPage() {
 
         <div className="nexus-divider" />
 
-        <div className="text-sm text-zinc-400 mb-6">
-          {doneCount} of {totalItems.length} items configured
+        {/* KEEP Score */}
+        <div className="flex items-baseline gap-4 mb-6">
+          <span className={`text-4xl font-bold font-mono ${getScoreColor(score)}`}>{score}</span>
+          <span className="text-sm text-zinc-500">
+            KEEP Score · {doneCount}/{totalItems.length} items
+          </span>
         </div>
 
+        {/* Pillar breakdown */}
+        <div className="flex gap-4 mb-6">
+          {PILLAR_META.map(meta => {
+            const pillar = pillars[meta.key]
+            const done = pillar.items.filter(i => i.done).length
+            const pct = pillar.items.length > 0 ? Math.round((done / pillar.items.length) * 100) : 0
+            return (
+              <div key={meta.key} className="flex-1">
+                <div className="flex items-center justify-between text-xs text-zinc-500 mb-1">
+                  <span className="font-mono">{meta.letter}</span>
+                  <span>{pct}%</span>
+                </div>
+                <div className="h-1.5 bg-zinc-800 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full transition-all ${pct >= 80 ? 'bg-green-500' : pct >= 40 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="nexus-divider" />
+
+        {/* Pillar details */}
         <div className="space-y-6">
           {PILLAR_META.map(meta => {
             const pillar = pillars[meta.key]

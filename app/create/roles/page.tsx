@@ -2,17 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
-import type { KeyRole, StorageType, KeyHolder } from '@/lib/keep-core/data-model'
+import type { StorageType, KeyHolder, FunctionalRole } from '@/lib/keep-core/data-model'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-
-const STANDARD_ROLES: { id: string; label: string; role: KeyRole }[] = [
-  { id: 'primary1', label: 'Primary 1', role: 'primary' },
-  { id: 'primary2', label: 'Primary 2', role: 'spouse' },
-  { id: 'trustee', label: 'Trustee', role: 'child' },
-  { id: 'attorney', label: 'Attorney', role: 'attorney' },
-  { id: 'advisor', label: 'Advisor', role: 'custodian' },
-]
 
 const DEVICE_OPTIONS: { value: StorageType | '—'; label: string }[] = [
   { value: 'hardware-wallet', label: 'Coldcard' },
@@ -27,62 +19,84 @@ const DEVICE_OPTIONS: { value: StorageType | '—'; label: string }[] = [
 
 interface RoleEntry {
   id: string
-  label: string
-  role: KeyRole
   name: string
   device: string
+  functional_role: FunctionalRole
+}
+
+function createEmptyRole(): RoleEntry {
+  return {
+    id: `kh-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+    name: '',
+    device: '—',
+    functional_role: 'owner',
+  }
 }
 
 export default function CreateRolesPage() {
   const router = useRouter()
   const { setup, loadFromFile } = useFamilySetup()
 
-  const [roles, setRoles] = useState<RoleEntry[]>(() =>
-    STANDARD_ROLES.map(r => ({
-      ...r,
-      name: '',
-      device: '—',
-    }))
-  )
+  const [roles, setRoles] = useState<RoleEntry[]>(() => {
+    // Start with 3 empty rows
+    return [
+      { ...createEmptyRole(), functional_role: 'owner' },
+      { ...createEmptyRole(), functional_role: 'signer' },
+      { ...createEmptyRole(), functional_role: 'protector' },
+    ]
+  })
 
   useEffect(() => {
     if (setup.keyholders?.length > 0) {
-      setRoles(prev =>
-        prev.map((role, idx) => {
-          const existing = setup.keyholders[idx]
-          if (existing) {
-            return {
-              ...role,
-              name: existing.name || '',
-              device: existing.location || '—',
-            }
-          }
-          return role
-        })
+      setRoles(
+        setup.keyholders.map(kh => ({
+          id: kh.id,
+          name: kh.name || '',
+          device: kh.location || '—',
+          functional_role: kh.functional_role || 'owner',
+        }))
       )
     }
   }, [setup.keyholders])
 
-  const updateRole = (index: number, field: 'name' | 'device', value: string) => {
+  const updateRole = (index: number, field: keyof RoleEntry, value: string) => {
     const updated = [...roles]
     updated[index] = { ...updated[index], [field]: value }
     setRoles(updated)
   }
 
+  const addRow = () => {
+    setRoles([...roles, createEmptyRole()])
+  }
+
+  const removeRow = (index: number) => {
+    if (roles.length <= 1) return
+    setRoles(roles.filter((_, i) => i !== index))
+  }
+
+  // Count owners + signers for threshold feedback
+  const wallet = setup.wallets?.[0]
+  const ownerSignerCount = roles.filter(
+    r => r.name.trim() && (r.functional_role === 'owner' || r.functional_role === 'signer')
+  ).length
+  const thresholdMet = !wallet || ownerSignerCount >= wallet.threshold
+  const isCold = wallet?.tier === 'cold'
+
   const handleNext = () => {
     const keyholders: KeyHolder[] = roles
-      .filter(r => r.name.trim() || r.device !== '—')
+      .filter(r => r.name.trim())
       .map(r => {
         const deviceOption = DEVICE_OPTIONS.find(d => d.label === r.device)
         return {
           id: r.id,
-          name: r.name.trim() || r.label,
-          role: r.role,
+          name: r.name.trim(),
+          role: 'other' as const,
           jurisdiction: '',
-          storage_type: (deviceOption?.value === '—' ? 'paper' : (deviceOption?.value || 'hardware-wallet')) as StorageType,
+          storage_type: (deviceOption?.value === '—' ? 'hardware-wallet' : (deviceOption?.value || 'hardware-wallet')) as StorageType,
           location: r.device === '—' ? '' : r.device,
           key_age_days: 0,
           is_sharded: false,
+          functional_role: r.functional_role,
         }
       })
 
@@ -99,16 +113,16 @@ export default function CreateRolesPage() {
 
         {/* Column Headers */}
         <div className="flex items-center gap-2 text-xs text-zinc-500 uppercase tracking-wider mb-4">
-          <span className="w-24">role</span>
           <span className="flex-1">name</span>
+          <span className="w-28">function</span>
           <span className="w-28">device</span>
+          <span className="w-8" />
         </div>
 
         {/* Role Rows */}
         <div className="space-y-3">
           {roles.map((role, idx) => (
             <div key={role.id} className="flex items-center gap-2">
-              <span className="text-zinc-500 text-sm w-24">{role.label}</span>
               <input
                 type="text"
                 className="bg-transparent border-b border-zinc-700 text-zinc-200 focus:border-zinc-400 outline-none px-1 py-0.5 font-mono flex-1"
@@ -118,6 +132,15 @@ export default function CreateRolesPage() {
               />
               <select
                 className="nexus-select w-28"
+                value={role.functional_role}
+                onChange={(e) => updateRole(idx, 'functional_role', e.target.value)}
+              >
+                <option value="owner">Owner</option>
+                <option value="signer">Signer</option>
+                <option value="protector">Protector</option>
+              </select>
+              <select
+                className="nexus-select w-28"
                 value={role.device}
                 onChange={(e) => updateRole(idx, 'device', e.target.value)}
               >
@@ -125,9 +148,31 @@ export default function CreateRolesPage() {
                   <option key={d.label} value={d.label}>{d.label}</option>
                 ))}
               </select>
+              <button
+                className="text-zinc-600 hover:text-zinc-400 text-sm w-8 text-center"
+                onClick={() => removeRow(idx)}
+                title="Remove"
+              >
+                [x]
+              </button>
             </div>
           ))}
         </div>
+
+        <button
+          className="nexus-btn mt-4 text-xs"
+          onClick={addRow}
+        >
+          [+ add keyholder]
+        </button>
+
+        {/* Threshold feedback */}
+        {isCold && wallet && !thresholdMet && (
+          <p className="text-yellow-500 text-xs mt-4">
+            Cold vault needs {wallet.threshold} owners/signers but only {ownerSignerCount} designated.
+            Protectors are for emergency only.
+          </p>
+        )}
 
         <div className="nexus-divider" />
 

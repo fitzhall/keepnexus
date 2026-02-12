@@ -9,7 +9,9 @@ import {
   ValidationResult,
   EventLogEntry,
   Wallet,
-  KeyHolder
+  KeyHolder,
+  FunctionalRole,
+  WalletTier
 } from './data-model';
 
 // ============================================================================
@@ -383,6 +385,44 @@ export function validateShardFile(data: any): ValidationResult {
     if (!data.legal.has_will && !data.legal.has_trust) {
       warnings.push('No will or trust documents on file');
     }
+  }
+
+  // Key governance warnings for cold-tier wallets
+  if (data.wallets && data.keyholders) {
+    data.wallets.forEach((wallet: Wallet, i: number) => {
+      if (wallet.tier !== 'cold') return;
+
+      const signingHolders = data.keyholders.filter(
+        (k: KeyHolder) => k.functional_role === 'owner' || k.functional_role === 'signer'
+      );
+
+      if (signingHolders.length < wallet.threshold) {
+        warnings.push(
+          `Wallet ${i}: cold vault needs at least ${wallet.threshold} owners/signers but only ${signingHolders.length} designated`
+        );
+      }
+
+      // Check if any single person holds >= threshold keys
+      const nameCounts = new Map<string, number>();
+      data.keyholders.forEach((k: KeyHolder) => {
+        const n = k.name.trim().toLowerCase();
+        if (n) nameCounts.set(n, (nameCounts.get(n) || 0) + 1);
+      });
+
+      for (const [name, count] of nameCounts) {
+        if (count >= wallet.threshold) {
+          warnings.push(
+            `Wallet ${i}: "${name}" holds ${count} keys on a cold vault (threshold is ${wallet.threshold})`
+          );
+        }
+        if (count > 1) {
+          warnings.push(
+            'Self-custodied split \u2014 consider adding an independent signer.'
+          );
+          break;
+        }
+      }
+    });
   }
 
   return { valid: errors.length === 0, errors, warnings, version_compatible };
