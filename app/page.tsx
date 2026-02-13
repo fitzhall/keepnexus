@@ -1,10 +1,6 @@
-'use client'
-
-import { useState } from 'react'
+import Link from 'next/link'
 
 export default function HomePage() {
-  const [showForm, setShowForm] = useState(false)
-
   return (
     <main className="nexus min-h-screen flex items-center">
       <div className="nexus-container">
@@ -27,35 +23,13 @@ export default function HomePage() {
         </p>
 
         <div className="mt-12">
-          {!showForm ? (
-            <button
-              onClick={() => setShowForm(true)}
-              className="nexus-btn-primary"
-            >
-              [request access]
-            </button>
-          ) : (
-            <div className="w-full max-w-sm">
-              <iframe
-                src="https://tally.so/embed/D4dz6p?alignLeft=1&hideTitle=1&transparentBackground=1&dynamicHeight=1"
-                width="100%"
-                height="300"
-                frameBorder={0}
-                title="Request Access"
-                style={{ background: 'transparent' }}
-              />
-            </div>
-          )}
-        </div>
-
-        <div className="mt-4">
-          <a href="/verify" className="text-zinc-600 text-xs font-mono hover:text-zinc-400 transition-colors">
-            have an access code?
-          </a>
+          <Link href="/dashboard" className="nexus-btn-primary">
+            [enter]
+          </Link>
         </div>
 
         <div className="mt-16 text-zinc-700 text-xs font-mono">
-          by invitation only &middot; local-first &middot; no backend
+          local-first &middot; no backend &middot; sovereign
         </div>
       </div>
     </main>
