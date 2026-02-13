@@ -8,21 +8,21 @@ export default function HomePage() {
           KEEP NEXUS
         </div>
 
-        <h1 className="text-zinc-200 text-xl sm:text-2xl font-light leading-relaxed max-w-md">
-          The people you love will be able to access what you built —
+        <h1 className="text-zinc-200 text-xl sm:text-2xl font-light leading-relaxed max-w-sm">
+          Don&rsquo;t let your Bitcoin
           <br />
-          even if you&rsquo;re not there to explain it.
+          die with you.
         </h1>
 
         <div className="nexus-divider" />
 
-        <p className="text-zinc-500 text-sm font-mono leading-relaxed max-w-sm">
-          A portable Bitcoin inheritance plan your family can actually use. No backend. No third party. Just you.
+        <p className="text-zinc-500 text-sm font-mono leading-relaxed max-w-xs">
+          A simple plan your family can follow — even without you.
         </p>
 
         <div className="mt-12">
           <Link href="/dashboard" className="nexus-btn-primary">
-            [start your plan]
+            [build your shard]
           </Link>
         </div>
 
