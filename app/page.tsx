@@ -17,7 +17,7 @@ export default function HomePage() {
         <div className="nexus-divider" />
 
         <p className="text-zinc-500 text-sm font-mono leading-relaxed max-w-sm">
-          A portable Bitcoin inheritance plan your family can actually use. No backend. No third party. Just you.
+          A living Bitcoin legacy system your family can actually use. No third party. Just you.
         </p>
 
         <div className="mt-12">
