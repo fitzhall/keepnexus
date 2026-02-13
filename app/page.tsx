@@ -8,6 +8,10 @@ export default function HomePage() {
           KEEP NEXUS
         </div>
 
+        <div className="text-amber-500/60 text-4xl mb-8" aria-hidden="true">
+          ₿
+        </div>
+
         <h1 className="text-zinc-200 text-xl sm:text-2xl font-light leading-relaxed max-w-sm">
           Your Bitcoin lives on —
           <br />
@@ -21,7 +25,10 @@ export default function HomePage() {
         </p>
 
         <div className="mt-12">
-          <Link href="/dashboard" className="nexus-btn-primary">
+          <Link
+            href="/dashboard"
+            className="inline-block px-6 py-3 text-sm font-mono bg-amber-600/90 text-zinc-950 hover:bg-amber-500 transition-colors"
+          >
             [build your shard]
           </Link>
         </div>
