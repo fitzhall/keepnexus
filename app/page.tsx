@@ -26,7 +26,18 @@ export default function HomePage() {
           </Link>
         </div>
 
-        <div className="mt-16 text-zinc-700 text-xs font-mono">
+        <div className="mt-6">
+          <a
+            href="https://backed-x-bitcoin.gitbook.io/keep-protocol/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-zinc-600 text-xs font-mono hover:text-zinc-400 transition-colors"
+          >
+            [read the docs]
+          </a>
+        </div>
+
+        <div className="mt-12 text-zinc-700 text-xs font-mono">
           local-first &middot; no backend &middot; sovereign
         </div>
       </div>

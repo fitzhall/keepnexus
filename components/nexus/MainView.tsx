@@ -204,6 +204,7 @@ export function MainView() {
           <Link href="/share" className="nexus-btn">[share]</Link>
           <Link href="/proof" className="nexus-btn">[proof]</Link>
           <button className="nexus-btn" onClick={handleExport}>[export]</button>
+          <a href="https://backed-x-bitcoin.gitbook.io/keep-protocol/" target="_blank" rel="noopener noreferrer" className="nexus-btn">[docs]</a>
         </div>
       </div>
     </main>
