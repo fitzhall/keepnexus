@@ -10,7 +10,7 @@ export function PillarHeader({ letter, label, items }: PillarHeaderProps) {
   const dots = items.map(i => (i.done ? '\u25CF' : '\u25CB')).join('')
   const doneCount = items.filter(i => i.done).length
   const pct = items.length > 0 ? doneCount / items.length : 0
-  const letterColor = pct >= 1 ? 'text-green-500' : pct >= 0.5 ? 'text-amber-500' : 'text-red-500'
+  const letterColor = pct >= 0.75 ? 'text-green-500' : pct >= 0.4 ? 'text-yellow-500' : 'text-red-500'
 
   return (
     <div className="flex items-center gap-1.5 sm:gap-2 text-xs text-zinc-500 pt-6 pb-1 font-mono tracking-wide min-w-0">
