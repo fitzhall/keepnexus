@@ -35,7 +35,23 @@ export function MainView() {
     ? `${new Date(setup.continuity.last_drill).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })} · all signers verified`
     : 'no check-ins recorded'
 
-  const status = 'healthy'
+  // Derive status from pillar completeness
+  const allItems = [
+    ...report.K.items,
+    ...report.E_estate.items,
+    ...report.E_continuity.items,
+    ...report.P.items,
+  ]
+  const doneCount = allItems.filter(i => i.done).length
+  const totalCount = allItems.length
+  const pct = totalCount > 0 ? doneCount / totalCount : 0
+
+  const status = pct >= 0.75 ? 'healthy' : pct >= 0.4 ? 'attention' : 'critical'
+  const statusLabel = pct >= 0.75
+    ? `healthy · ${doneCount}/${totalCount}`
+    : pct >= 0.4
+      ? `needs attention · ${doneCount}/${totalCount}`
+      : `incomplete · ${doneCount}/${totalCount}`
 
   // THAP display
   const thapDisplay = setup.thap.current_hash
@@ -85,7 +101,7 @@ export function MainView() {
 
         <div className="nexus-status">
           <span className={`nexus-status-dot ${status}`} />
-          <span className="text-sm text-zinc-400">{status}</span>
+          <span className="text-sm text-zinc-400">{statusLabel}</span>
         </div>
 
         <div className="nexus-divider" />
