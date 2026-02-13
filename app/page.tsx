@@ -9,15 +9,15 @@ export default function HomePage() {
         </div>
 
         <h1 className="text-zinc-200 text-xl sm:text-2xl font-light leading-relaxed max-w-sm">
-          Don&rsquo;t let your Bitcoin
+          Your Bitcoin lives on —
           <br />
-          die with you.
+          for the people you love.
         </h1>
 
         <div className="nexus-divider" />
 
-        <p className="text-zinc-500 text-sm font-mono leading-relaxed max-w-xs">
-          A simple plan your family can follow — even without you.
+        <p className="text-zinc-500 text-sm font-mono leading-relaxed max-w-sm">
+          A portable Bitcoin inheritance plan your family can actually use. No backend. No third party. Just you.
         </p>
 
         <div className="mt-12">
