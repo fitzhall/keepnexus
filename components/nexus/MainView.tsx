@@ -5,6 +5,7 @@ import { useFamilySetup } from '@/lib/context/FamilySetup'
 import { exportToJSON, FILE_EXTENSION } from '@/lib/keep-core/little-shard'
 import { calculatePillarReport } from '@/lib/keep-core/keep-score-v2'
 import { PillarHeader } from './PillarHeader'
+import { ThemeToggle } from './ThemeToggle'
 import Link from 'next/link'
 
 export function MainView() {
@@ -91,7 +92,10 @@ export function MainView() {
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS</div>
+        <div className="flex items-center justify-between">
+          <div className="nexus-title">KEEP NEXUS</div>
+          <ThemeToggle />
+        </div>
         <div className="nexus-family">{setup.family_name} Reserve</div>
 
         <div className="nexus-divider" />
@@ -101,7 +105,7 @@ export function MainView() {
 
         <div className="nexus-status">
           <span className={`nexus-status-dot ${status}`} />
-          <span className="text-sm text-zinc-400">{statusLabel}</span>
+          <span className="text-sm text-zinc-500 dark:text-zinc-400">{statusLabel}</span>
         </div>
 
         <div className="nexus-divider" />
@@ -170,7 +174,7 @@ export function MainView() {
           ) : (
             <div className="nexus-row">
               <span className="nexus-row-label">&nbsp;</span>
-              <span className="nexus-row-value text-zinc-600">no professionals configured</span>
+              <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">no professionals configured</span>
             </div>
           )}
         </div>
@@ -182,7 +186,7 @@ export function MainView() {
           <div className="nexus-row">
             <span className="nexus-row-label">thap</span>
             <button
-              className="nexus-row-value font-mono text-xs cursor-pointer hover:text-zinc-200 transition-colors"
+              className="nexus-row-value font-mono text-xs cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
               onClick={handleCopyHash}
               title="click to copy full hash"
             >
@@ -196,7 +200,7 @@ export function MainView() {
           {setup.thap.history.length > 0 && (
             <div className="nexus-row">
               <span className="nexus-row-label">prior</span>
-              <span className="nexus-row-value text-zinc-600 font-mono text-xs">
+              <span className="nexus-row-value text-zinc-400 dark:text-zinc-600 font-mono text-xs">
                 {setup.thap.history.length} hash{setup.thap.history.length !== 1 ? 'es' : ''}
               </span>
             </div>
@@ -207,7 +211,7 @@ export function MainView() {
 
         <div className="nexus-row">
           <span className="nexus-row-label">audit</span>
-          <span className="nexus-row-value text-zinc-600">
+          <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">
             {setup.event_log?.length || 0} entries
           </span>
         </div>
@@ -231,11 +235,14 @@ function EmptyState() {
   return (
     <main className="nexus">
       <div className="nexus-container">
-        <div className="nexus-title">KEEP NEXUS</div>
+        <div className="flex items-center justify-between">
+          <div className="nexus-title">KEEP NEXUS</div>
+          <ThemeToggle />
+        </div>
 
         <div className="nexus-divider" />
 
-        <p className="text-zinc-400 text-sm">No shard found.</p>
+        <p className="text-zinc-500 dark:text-zinc-400 text-sm">No shard found.</p>
 
         <div className="nexus-actions mt-8">
           <Link href="/create" className="nexus-btn">[create]</Link>

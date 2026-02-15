@@ -51,8 +51,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable}`}>
-      <body className="bg-zinc-950 text-zinc-50 antialiased min-h-screen">
+    <html lang="en" className={`${inter.variable} ${jetbrainsMono.variable} dark`}>
+      <body className="min-h-screen antialiased">
         <Providers>
           {children}
         </Providers>

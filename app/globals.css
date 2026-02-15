@@ -11,11 +11,25 @@
   }
 
   html {
-    @apply bg-zinc-950 text-zinc-50 antialiased;
+    @apply antialiased;
     font-family: var(--font-inter);
   }
 
-  body {
+  /* Light mode (default when no .dark class) */
+  html:not(.dark) {
+    @apply bg-zinc-50 text-zinc-900;
+  }
+
+  html:not(.dark) body {
+    @apply bg-zinc-50 text-zinc-900 min-h-screen;
+  }
+
+  /* Dark mode */
+  html.dark {
+    @apply bg-zinc-950 text-zinc-50;
+  }
+
+  html.dark body {
     @apply bg-zinc-950 text-zinc-50 min-h-screen;
   }
 
@@ -24,24 +38,45 @@
     @apply w-2;
   }
 
-  ::-webkit-scrollbar-track {
+  .dark ::-webkit-scrollbar-track {
     @apply bg-zinc-900;
   }
 
+  ::-webkit-scrollbar-track {
+    @apply bg-zinc-200;
+  }
+
+  .dark ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-700 rounded-full;
+  }
+
   ::-webkit-scrollbar-thumb {
-    @apply bg-zinc-700 rounded-full hover:bg-zinc-600;
+    @apply bg-zinc-400 rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-500;
+  }
+
+  .dark ::-webkit-scrollbar-thumb:hover {
+    @apply bg-zinc-600;
   }
 
   /* Selection colors */
-  ::selection {
+  .dark ::selection {
     @apply bg-zinc-700 text-zinc-50;
+  }
+
+  ::selection {
+    @apply bg-zinc-300 text-zinc-900;
   }
 }
 
 @layer components {
   /* Keep Nexus v2 - Text-based UI */
   .nexus {
-    @apply bg-zinc-950 text-zinc-100 font-mono min-h-screen;
+    @apply text-zinc-900 dark:text-zinc-100 font-mono min-h-screen;
+    @apply bg-zinc-50 dark:bg-zinc-950;
   }
 
   .nexus-container {
@@ -53,15 +88,15 @@
   }
 
   .nexus-family {
-    @apply text-lg text-zinc-300 mt-1;
+    @apply text-lg text-zinc-700 dark:text-zinc-300 mt-1;
   }
 
   .nexus-divider {
-    @apply border-t border-zinc-800 my-6 sm:my-8;
+    @apply border-t border-zinc-200 dark:border-zinc-800 my-6 sm:my-8;
   }
 
   .nexus-hero-btc {
-    @apply text-4xl md:text-5xl text-zinc-50 font-mono tracking-tight;
+    @apply text-4xl md:text-5xl text-zinc-900 dark:text-zinc-50 font-mono tracking-tight;
   }
 
   .nexus-hero-fiat {
@@ -89,7 +124,7 @@
   }
 
   .nexus-row-value {
-    @apply text-zinc-300 flex-1 break-words min-w-0;
+    @apply text-zinc-700 dark:text-zinc-300 flex-1 break-words min-w-0;
   }
 
   .nexus-actions {
@@ -97,34 +132,43 @@
   }
 
   .nexus-btn {
-    @apply px-3 py-2 text-xs sm:text-sm sm:px-4 text-zinc-400 border border-zinc-700
-           hover:text-zinc-200 hover:border-zinc-500 transition-colors;
+    @apply px-3 py-2 text-xs sm:text-sm sm:px-4 text-zinc-500 dark:text-zinc-400
+           border border-zinc-300 dark:border-zinc-700
+           hover:text-zinc-900 dark:hover:text-zinc-200
+           hover:border-zinc-500 dark:hover:border-zinc-500
+           transition-colors;
   }
 
   .nexus-btn-primary {
-    @apply px-4 py-2 text-sm text-zinc-900 bg-zinc-100
-           hover:bg-zinc-200 transition-colors;
+    @apply px-4 py-2 text-sm text-zinc-50 dark:text-zinc-900
+           bg-zinc-900 dark:bg-zinc-100
+           hover:bg-zinc-800 dark:hover:bg-zinc-200
+           transition-colors;
   }
 
   /* Form inputs for update pages */
   .nexus-input {
-    @apply bg-transparent border-b border-zinc-700 text-zinc-200
-           focus:border-zinc-400 outline-none px-1 py-0.5;
+    @apply bg-transparent border-b border-zinc-300 dark:border-zinc-700
+           text-zinc-800 dark:text-zinc-200
+           focus:border-zinc-500 dark:focus:border-zinc-400 outline-none px-1 py-0.5;
   }
 
   .nexus-select {
-    @apply bg-zinc-900 border border-zinc-700 text-zinc-200
-           focus:border-zinc-400 outline-none px-2 py-1 rounded;
+    @apply bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700
+           text-zinc-800 dark:text-zinc-200
+           focus:border-zinc-500 dark:focus:border-zinc-400 outline-none px-2 py-1 rounded;
   }
 
   .nexus-checkbox {
-    @apply w-4 h-4 bg-zinc-900 border border-zinc-700 rounded
-           checked:bg-zinc-100 checked:border-zinc-100;
+    @apply w-4 h-4 bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 rounded
+           checked:bg-zinc-900 dark:checked:bg-zinc-100
+           checked:border-zinc-900 dark:checked:border-zinc-100;
   }
 
   .nexus-textarea {
-    @apply bg-zinc-900 border border-zinc-700 text-zinc-200
-           focus:border-zinc-400 outline-none px-3 py-2 rounded resize-none;
+    @apply bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700
+           text-zinc-800 dark:text-zinc-200
+           focus:border-zinc-500 dark:focus:border-zinc-400 outline-none px-3 py-2 rounded resize-none;
   }
 
 }
@@ -147,6 +191,6 @@
 
   /* Custom focus styles */
   .focus-ring {
-    @apply focus:outline-none focus:ring-2 focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-zinc-950;
+    @apply focus:outline-none focus:ring-2 focus:ring-zinc-400 dark:focus:ring-zinc-600 focus:ring-offset-2 focus:ring-offset-zinc-50 dark:focus:ring-offset-zinc-950;
   }
 }
