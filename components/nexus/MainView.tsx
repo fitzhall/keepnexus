@@ -89,30 +89,50 @@ export function MainView() {
   if (setup.professionals.attorney?.name) proEntries.push({ role: 'attorney', name: setup.professionals.attorney.name })
   if (setup.professionals.cpa?.name) proEntries.push({ role: 'CPA', name: setup.professionals.cpa.name })
 
+  // Find first incomplete item for the nudge
+  const firstIncomplete = allItems.find(i => !i.done)
+
+  // Last modified display
+  const lastModified = setup.last_modified
+    ? new Date(setup.last_modified).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    : '—'
+
   return (
     <main className="nexus">
       <div className="nexus-container">
+        {/* Header */}
         <div className="flex items-center justify-between">
           <div className="nexus-title">KEEP NEXUS</div>
           <ThemeToggle />
         </div>
-        <div className="nexus-family">{setup.family_name} Reserve</div>
+        <div className="nexus-family">{setup.family_name}</div>
 
         <div className="nexus-divider" />
 
-        <div className="nexus-hero-btc">₿ —</div>
-        <div className="nexus-hero-fiat">connect wallet to view balance</div>
-
-        <div className="nexus-status">
-          <span className={`nexus-status-dot ${status}`} />
-          <span className="text-sm text-zinc-500 dark:text-zinc-400">{statusLabel}</span>
+        {/* Shard status bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
+          <div className="nexus-status">
+            <span className={`nexus-status-dot ${status}`} />
+            <span className="text-sm text-zinc-500 dark:text-zinc-400">{statusLabel}</span>
+          </div>
+          <div className="text-xs text-zinc-500 font-mono">
+            modified {lastModified} · v{setup.version || '2.0'}
+          </div>
         </div>
 
-        <div className="nexus-divider" />
+        {/* Nudge for incomplete items */}
+        {firstIncomplete && (
+          <Link
+            href={firstIncomplete.href || '/update'}
+            className="block mt-3 px-3 py-2 text-xs font-mono border border-amber-600/30 text-amber-600 dark:text-amber-500 hover:border-amber-500 transition-colors"
+          >
+            next step → {firstIncomplete.label}
+          </Link>
+        )}
 
         {/* ── K : key governance ── */}
         <PillarHeader letter="K" label="key governance" items={report.K.items} />
-        <div className="space-y-2 pl-2">
+        <div className="space-y-1 pl-2">
           {setup.wallets.length > 0 ? (
             setup.wallets.map(w => (
               <div key={w.id} className="nexus-row">
@@ -133,7 +153,7 @@ export function MainView() {
 
         {/* ── E : estate integration ── */}
         <PillarHeader letter="E" label="estate integration" items={report.E_estate.items} />
-        <div className="space-y-2 pl-2">
+        <div className="space-y-1 pl-2">
           <div className="nexus-row">
             <span className="nexus-row-label">heirs</span>
             <span className="nexus-row-value">{heirsDisplay}</span>
@@ -154,7 +174,7 @@ export function MainView() {
 
         {/* ── E : ensured continuity ── */}
         <PillarHeader letter="E" label="ensured continuity" items={report.E_continuity.items} />
-        <div className="space-y-2 pl-2">
+        <div className="space-y-1 pl-2">
           <div className="nexus-row">
             <span className="nexus-row-label">last check</span>
             <span className="nexus-row-value">{lastCheckDisplay}</span>
@@ -163,7 +183,7 @@ export function MainView() {
 
         {/* ── P : professional stewardship ── */}
         <PillarHeader letter="P" label="professional stewardship" items={report.P.items} />
-        <div className="space-y-2 pl-2">
+        <div className="space-y-1 pl-2">
           {proEntries.length > 0 ? (
             proEntries.map((p, i) => (
               <div key={i} className="nexus-row">
@@ -181,8 +201,8 @@ export function MainView() {
 
         <div className="nexus-divider" />
 
-        {/* THAP */}
-        <div className="space-y-2">
+        {/* THAP + Audit — compact */}
+        <div className="space-y-1">
           <div className="nexus-row">
             <span className="nexus-row-label">thap</span>
             <button
@@ -205,15 +225,12 @@ export function MainView() {
               </span>
             </div>
           )}
-        </div>
-
-        <div className="nexus-divider" />
-
-        <div className="nexus-row">
-          <span className="nexus-row-label">audit</span>
-          <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">
-            {setup.event_log?.length || 0} entries
-          </span>
+          <div className="nexus-row">
+            <span className="nexus-row-label">audit</span>
+            <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">
+              {setup.event_log?.length || 0} entries
+            </span>
+          </div>
         </div>
 
         <div className="nexus-divider" />

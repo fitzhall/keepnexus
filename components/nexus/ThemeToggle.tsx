@@ -8,10 +8,10 @@ export function ThemeToggle() {
   return (
     <button
       onClick={toggleTheme}
-      className="nexus-btn text-xs font-mono"
+      className="text-zinc-400 dark:text-zinc-600 text-xs font-mono hover:text-zinc-600 dark:hover:text-zinc-400 transition-colors"
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
     >
-      {theme === 'dark' ? '[light]' : '[dark]'}
+      {theme === 'dark' ? '○' : '●'}
     </button>
   )
 }
