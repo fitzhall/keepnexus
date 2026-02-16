@@ -259,7 +259,7 @@ export default function UpdateVaultPage() {
         <div className="nexus-divider" />
 
         <div className="nexus-actions">
-          <Link href="/dashboard" className="nexus-btn">[back]</Link>
+          <Link href="/dashboard" className="nexus-btn">[cancel]</Link>
         </div>
       </div>
     </main>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { grantAccess } from '@/lib/hooks/useAccessGate'
 
 // Valid access codes — add codes here when you grant access
@@ -80,9 +81,9 @@ export default function VerifyPage() {
 
         <div className="nexus-divider" />
 
-        <a href="/" className="text-zinc-600 text-xs font-mono hover:text-zinc-400 transition-colors">
+        <Link href="/" className="text-zinc-600 text-xs font-mono hover:text-zinc-400 transition-colors">
           &larr; back
-        </a>
+        </Link>
       </div>
     </main>
   )
