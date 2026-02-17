@@ -26,7 +26,7 @@ export default function HomePage() {
 
         <div className="mt-12">
           <Link
-            href="/dashboard"
+            href="/gate"
             className="inline-block px-6 py-3 text-sm font-mono bg-amber-600/90 text-zinc-950 hover:bg-amber-500 transition-colors"
           >
             [build your shard]
