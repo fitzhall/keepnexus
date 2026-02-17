@@ -44,6 +44,15 @@ export default function HomePage() {
           </a>
         </div>
 
+        <div className="mt-3">
+          <Link
+            href="/scorecard"
+            className="text-zinc-600 text-xs font-mono hover:text-zinc-400 transition-colors"
+          >
+            [take the custody scorecard]
+          </Link>
+        </div>
+
         <div className="mt-12 text-zinc-700 text-xs font-mono">
           local-first &middot; no backend &middot; sovereign
         </div>
