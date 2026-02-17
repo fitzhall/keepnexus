@@ -9,12 +9,14 @@ interface MenuEntry {
   href: string
   label: string
   description: string
+  doneKey?: string
 }
 
 interface PillarMenu {
   key: string
   letter: string
   name: string
+  hint: string
   items: MenuEntry[]
   report: PillarReport | null
 }
@@ -30,34 +32,38 @@ export default function UpdateMenuPage() {
   const pillars: PillarMenu[] = [
     {
       key: 'K', letter: 'K', name: 'key governance',
+      hint: 'How your Bitcoin is held and who controls the keys.',
       report: report?.K ?? null,
       items: [
-        { href: '/update/family', label: 'family', description: 'reserve name' },
-        { href: '/update/vault', label: 'vault', description: 'keys, multisig, custody platform' },
+        { href: '/update/family', label: 'family', description: 'your reserve name' },
+        { href: '/update/vault', label: 'vault', description: 'wallets, key setup, custody platform' },
       ],
     },
     {
       key: 'E_estate', letter: 'E', name: 'estate integration',
+      hint: 'Who inherits, what legal docs exist, and your family mission.',
       report: report?.E_estate ?? null,
       items: [
-        { href: '/update/heirs', label: 'heirs', description: 'beneficiaries, allocations' },
-        { href: '/update/legal', label: 'legal', description: 'jurisdiction, trust, documents' },
-        { href: '/update/charter', label: 'charter', description: 'mission, principles, review cadence' },
+        { href: '/update/heirs', label: 'heirs', description: 'who receives your Bitcoin' },
+        { href: '/update/legal', label: 'legal', description: 'trusts, wills, jurisdiction' },
+        { href: '/update/charter', label: 'charter', description: 'your family\'s guiding principles' },
       ],
     },
     {
       key: 'E_continuity', letter: 'E', name: 'ensured continuity',
+      hint: 'Proof that your plan still works. Drills, check-ins, and event logs.',
       report: report?.E_continuity ?? null,
       items: [
-        { href: '/update/policies', label: 'policies', description: 'checkin frequency, drills, triggers' },
-        { href: '/update/continuity', label: 'continuity', description: 'record check-in, drill, or event' },
+        { href: '/update/policies', label: 'policies', description: 'how often you check in and drill' },
+        { href: '/update/continuity', label: 'continuity', description: 'log a check-in, drill, or event' },
       ],
     },
     {
       key: 'P', letter: 'P', name: 'professional stewardship',
+      hint: 'The professionals helping protect your plan.',
       report: report?.P ?? null,
       items: [
-        { href: '/update/roles', label: 'roles', description: 'who has access, professionals' },
+        { href: '/update/roles', label: 'roles', description: 'advisor, attorney, CPA' },
       ],
     },
   ]
@@ -78,6 +84,11 @@ export default function UpdateMenuPage() {
     })
   }
 
+  // Overall progress
+  const allItems = pillars.flatMap(p => p.report?.items ?? [])
+  const doneCount = allItems.filter(i => i.done).length
+  const totalCount = allItems.length
+
   return (
     <main className="nexus">
       <div className="nexus-container">
@@ -85,14 +96,19 @@ export default function UpdateMenuPage() {
 
         <div className="nexus-divider" />
 
-        <p className="text-zinc-400 dark:text-zinc-500 text-sm mb-4">What changed?</p>
+        <p className="text-zinc-300 dark:text-zinc-300 text-sm">
+          Pick a section to update. Tap any pillar to see options.
+        </p>
+        <p className="text-zinc-500 text-xs font-mono mt-1 mb-4">
+          {doneCount}/{totalCount} complete · {totalCount - doneCount === 0 ? 'all set' : `${totalCount - doneCount} remaining`}
+        </p>
 
         <div className="space-y-1">
           {pillars.map((pillar) => {
             const items = pillar.report?.items ?? []
-            const doneCount = items.filter(i => i.done).length
+            const pillarDone = items.filter(i => i.done).length
             const dots = items.map(i => (i.done ? '\u25CF' : '\u25CB')).join('')
-            const pct = items.length > 0 ? doneCount / items.length : 0
+            const pct = items.length > 0 ? pillarDone / items.length : 0
             const letterColor = pct >= 0.75 ? 'text-green-500' : pct >= 0.4 ? 'text-yellow-500' : 'text-red-500'
             const isExpanded = expanded.has(pillar.key)
 
@@ -112,17 +128,23 @@ export default function UpdateMenuPage() {
                 </button>
 
                 {isExpanded && (
-                  <div className="space-y-1 pl-2 mt-1">
-                    {pillar.items.map(item => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className="nexus-row hover:text-zinc-200 dark:hover:text-zinc-100 transition-colors block"
-                      >
-                        <span className="nexus-row-label text-zinc-400 dark:text-zinc-300 font-medium">[{item.label}]</span>
-                        <span className="nexus-row-value text-zinc-500">{item.description}</span>
-                      </Link>
-                    ))}
+                  <div className="pl-2 mt-1">
+                    <p className="text-zinc-500 dark:text-zinc-500 text-xs font-mono mb-2 pl-1">
+                      {pillar.hint}
+                    </p>
+                    <div className="space-y-1">
+                      {pillar.items.map(item => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className="flex items-center gap-2 py-1.5 px-1 hover:bg-zinc-100 dark:hover:bg-zinc-900/50 transition-colors rounded block"
+                        >
+                          <span className="text-zinc-400 dark:text-zinc-300 font-mono text-sm font-medium shrink-0">[{item.label}]</span>
+                          <span className="text-zinc-500 text-xs font-mono">{item.description}</span>
+                          <span className="ml-auto text-zinc-600 text-xs shrink-0">&rarr;</span>
+                        </Link>
+                      ))}
+                    </div>
                   </div>
                 )}
               </div>
@@ -133,7 +155,7 @@ export default function UpdateMenuPage() {
         <div className="nexus-divider" />
 
         <div className="nexus-actions">
-          <Link href="/dashboard" className="nexus-btn">[cancel]</Link>
+          <Link href="/dashboard" className="nexus-btn">[back to dashboard]</Link>
         </div>
       </div>
     </main>
