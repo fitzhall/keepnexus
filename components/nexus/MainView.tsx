@@ -6,6 +6,7 @@ import { exportToJSON, FILE_EXTENSION } from '@/lib/keep-core/little-shard'
 import { calculatePillarReport } from '@/lib/keep-core/keep-score-v2'
 import { PillarHeader } from './PillarHeader'
 import { ThemeToggle } from './ThemeToggle'
+import { InfoTip } from './InfoTip'
 import Link from 'next/link'
 
 type PillarKey = 'K' | 'E_estate' | 'E_continuity' | 'P'
@@ -264,7 +265,10 @@ export function MainView() {
         {/* THAP + Audit — compact */}
         <div className="space-y-1">
           <div className="nexus-row">
-            <span className="nexus-row-label">thap</span>
+            <span className="nexus-row-label">
+              thap
+              <InfoTip text="Trust Hash Amendment Protocol. A unique fingerprint of your shard data. If anything changes, the hash changes — so you always know your file is unaltered." />
+            </span>
             <button
               className="nexus-row-value font-mono text-xs cursor-pointer hover:text-zinc-900 dark:hover:text-zinc-200 transition-colors"
               onClick={handleCopyHash}
@@ -274,7 +278,10 @@ export function MainView() {
             </button>
           </div>
           <div className="nexus-row">
-            <span className="nexus-row-label">changed</span>
+            <span className="nexus-row-label">
+              changed
+              <InfoTip text="Last time your shard data changed. Each change creates a new hash so you can track when updates were made." />
+            </span>
             <span className="nexus-row-value">{lastChanged}</span>
           </div>
           {setup.thap.history.length > 0 && (
@@ -286,7 +293,10 @@ export function MainView() {
             </div>
           )}
           <div className="nexus-row">
-            <span className="nexus-row-label">audit</span>
+            <span className="nexus-row-label">
+              audit
+              <InfoTip text="A log of every action taken on your shard — additions, updates, exports. Think of it as a receipt trail for your Bitcoin plan." />
+            </span>
             <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">
               {setup.event_log?.length || 0} entries
             </span>
