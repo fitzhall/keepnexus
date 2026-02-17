@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
 import { exportToJSON, FILE_EXTENSION } from '@/lib/keep-core/little-shard'
 import { calculatePillarReport } from '@/lib/keep-core/keep-score-v2'
@@ -8,15 +8,43 @@ import { PillarHeader } from './PillarHeader'
 import { ThemeToggle } from './ThemeToggle'
 import Link from 'next/link'
 
+type PillarKey = 'K' | 'E_estate' | 'E_continuity' | 'P'
+
 export function MainView() {
   const { setup } = useFamilySetup()
   const [copied, setCopied] = useState(false)
 
-  if (!setup.family_name || setup.family_name === '') {
+  const report = useMemo(() => {
+    if (!setup.family_name) return null
+    return calculatePillarReport(setup)
+  }, [setup])
+
+  // Determine which pillar to auto-expand (first incomplete one)
+  const firstIncompletePillar = useMemo<PillarKey | null>(() => {
+    if (!report) return null
+    const order: PillarKey[] = ['K', 'E_estate', 'E_continuity', 'P']
+    return order.find(k => !report[k].configured) ?? null
+  }, [report])
+
+  const [expanded, setExpanded] = useState<Set<PillarKey>>(
+    () => new Set(firstIncompletePillar ? [firstIncompletePillar] : [])
+  )
+
+  if (!setup.family_name || setup.family_name === '' || !report) {
     return <EmptyState />
   }
 
-  const report = calculatePillarReport(setup)
+  const togglePillar = (key: PillarKey) => {
+    setExpanded(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) {
+        next.delete(key)
+      } else {
+        next.add(key)
+      }
+      return next
+    })
+  }
 
   // Heirs display
   const heirsDisplay = setup.heirs?.length > 0
@@ -131,73 +159,105 @@ export function MainView() {
         )}
 
         {/* ── K : key governance ── */}
-        <PillarHeader letter="K" label="key governance" items={report.K.items} />
-        <div className="space-y-1 pl-2">
-          {setup.wallets.length > 0 ? (
-            setup.wallets.map(w => (
-              <div key={w.id} className="nexus-row">
-                <span className="nexus-row-label">{w.label}</span>
-                <span className="nexus-row-value">
-                  {w.threshold}-of-{w.total_keys}
-                  {w.platform ? ` · ${w.platform}` : ''}
-                </span>
+        <PillarHeader
+          letter="K"
+          label="key governance"
+          items={report.K.items}
+          expanded={expanded.has('K')}
+          onToggle={() => togglePillar('K')}
+        />
+        {expanded.has('K') && (
+          <div className="space-y-1 pl-2">
+            {setup.wallets.length > 0 ? (
+              setup.wallets.map(w => (
+                <div key={w.id} className="nexus-row">
+                  <span className="nexus-row-label">{w.label}</span>
+                  <span className="nexus-row-value">
+                    {w.threshold}-of-{w.total_keys}
+                    {w.platform ? ` · ${w.platform}` : ''}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="nexus-row">
+                <span className="nexus-row-label">vault</span>
+                <span className="nexus-row-value">not configured</span>
               </div>
-            ))
-          ) : (
-            <div className="nexus-row">
-              <span className="nexus-row-label">vault</span>
-              <span className="nexus-row-value">not configured</span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         {/* ── E : estate integration ── */}
-        <PillarHeader letter="E" label="estate integration" items={report.E_estate.items} />
-        <div className="space-y-1 pl-2">
-          <div className="nexus-row">
-            <span className="nexus-row-label">heirs</span>
-            <span className="nexus-row-value">{heirsDisplay}</span>
+        <PillarHeader
+          letter="E"
+          label="estate integration"
+          items={report.E_estate.items}
+          expanded={expanded.has('E_estate')}
+          onToggle={() => togglePillar('E_estate')}
+        />
+        {expanded.has('E_estate') && (
+          <div className="space-y-1 pl-2">
+            <div className="nexus-row">
+              <span className="nexus-row-label">heirs</span>
+              <span className="nexus-row-value">{heirsDisplay}</span>
+            </div>
+            <div className="nexus-row">
+              <span className="nexus-row-label">legal</span>
+              <span className="nexus-row-value">{legalDisplay}</span>
+            </div>
+            <div className="nexus-row">
+              <span className="nexus-row-label">charter</span>
+              <span className="nexus-row-value">
+                {setup.charter.mission
+                  ? `${setup.charter.principles.length} principle${setup.charter.principles.length !== 1 ? 's' : ''} · ${setup.charter.reviewFrequency} review`
+                  : 'not configured'}
+              </span>
+            </div>
           </div>
-          <div className="nexus-row">
-            <span className="nexus-row-label">legal</span>
-            <span className="nexus-row-value">{legalDisplay}</span>
-          </div>
-          <div className="nexus-row">
-            <span className="nexus-row-label">charter</span>
-            <span className="nexus-row-value">
-              {setup.charter.mission
-                ? `${setup.charter.principles.length} principle${setup.charter.principles.length !== 1 ? 's' : ''} · ${setup.charter.reviewFrequency} review`
-                : 'not configured'}
-            </span>
-          </div>
-        </div>
+        )}
 
         {/* ── E : ensured continuity ── */}
-        <PillarHeader letter="E" label="ensured continuity" items={report.E_continuity.items} />
-        <div className="space-y-1 pl-2">
-          <div className="nexus-row">
-            <span className="nexus-row-label">last check</span>
-            <span className="nexus-row-value">{lastCheckDisplay}</span>
+        <PillarHeader
+          letter="E"
+          label="ensured continuity"
+          items={report.E_continuity.items}
+          expanded={expanded.has('E_continuity')}
+          onToggle={() => togglePillar('E_continuity')}
+        />
+        {expanded.has('E_continuity') && (
+          <div className="space-y-1 pl-2">
+            <div className="nexus-row">
+              <span className="nexus-row-label">last check</span>
+              <span className="nexus-row-value">{lastCheckDisplay}</span>
+            </div>
           </div>
-        </div>
+        )}
 
         {/* ── P : professional stewardship ── */}
-        <PillarHeader letter="P" label="professional stewardship" items={report.P.items} />
-        <div className="space-y-1 pl-2">
-          {proEntries.length > 0 ? (
-            proEntries.map((p, i) => (
-              <div key={i} className="nexus-row">
-                <span className="nexus-row-label">{p.role}</span>
-                <span className="nexus-row-value">{p.name}</span>
+        <PillarHeader
+          letter="P"
+          label="professional stewardship"
+          items={report.P.items}
+          expanded={expanded.has('P')}
+          onToggle={() => togglePillar('P')}
+        />
+        {expanded.has('P') && (
+          <div className="space-y-1 pl-2">
+            {proEntries.length > 0 ? (
+              proEntries.map((p, i) => (
+                <div key={i} className="nexus-row">
+                  <span className="nexus-row-label">{p.role}</span>
+                  <span className="nexus-row-value">{p.name}</span>
+                </div>
+              ))
+            ) : (
+              <div className="nexus-row">
+                <span className="nexus-row-label">&nbsp;</span>
+                <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">no professionals configured</span>
               </div>
-            ))
-          ) : (
-            <div className="nexus-row">
-              <span className="nexus-row-label">&nbsp;</span>
-              <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">no professionals configured</span>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
 
         <div className="nexus-divider" />
 
