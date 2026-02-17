@@ -292,15 +292,15 @@ export function MainView() {
               </span>
             </div>
           )}
-          <div className="nexus-row">
+          <Link href="/audit" className="nexus-row hover:text-zinc-300 transition-colors">
             <span className="nexus-row-label">
               audit
               <InfoTip text="A log of every action taken on your shard — additions, updates, exports. Think of it as a receipt trail for your Bitcoin plan." />
             </span>
             <span className="nexus-row-value text-zinc-400 dark:text-zinc-600">
-              {setup.event_log?.length || 0} entries
+              {setup.event_log?.length || 0} entries →
             </span>
-          </div>
+          </Link>
         </div>
 
         <div className="nexus-divider" />
