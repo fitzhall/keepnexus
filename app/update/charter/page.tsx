@@ -121,7 +121,7 @@ export default function CharterPage() {
 
         <div className="nexus-actions">
           <button className="nexus-btn nexus-btn-primary" onClick={handleSave}>[save]</button>
-          <Link href="/dashboard" className="nexus-btn">[cancel]</Link>
+          <Link href="/update" className="nexus-btn">[cancel]</Link>
         </div>
       </div>
     </main>
