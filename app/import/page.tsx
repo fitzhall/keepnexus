@@ -4,6 +4,8 @@ import { useState, useRef, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useFamilySetup } from '@/lib/context/FamilySetup'
+import { IS_DESKTOP } from '@/lib/platform'
+import { openFileNative } from '@/lib/desktop/file-ops'
 
 export default function ImportPage() {
   const router = useRouter()
@@ -57,6 +59,25 @@ export default function ImportPage() {
     if (file) processFile(file)
   }, [processFile])
 
+  const handleNativeOpen = useCallback(async () => {
+    setError(null)
+    try {
+      const text = await openFileNative()
+      if (!text) return // user cancelled
+
+      const data = JSON.parse(text)
+      if (!data.family_name && !data.familyName) {
+        setError('Invalid file: missing family name')
+        return
+      }
+
+      loadFromFile(data)
+      router.push('/dashboard')
+    } catch {
+      setError('Invalid file: could not parse JSON')
+    }
+  }, [loadFromFile, router])
+
   return (
     <main className="nexus">
       <div className="nexus-container">
@@ -77,18 +98,20 @@ export default function ImportPage() {
         >
           <p className="text-sm mb-4">Drop .keep, .keepnexus, or .shard file here</p>
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={IS_DESKTOP ? handleNativeOpen : () => fileInputRef.current?.click()}
             className="nexus-btn"
           >
             [browse]
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".keep,.keepnexus,.shard,.json"
-            onChange={handleFileSelect}
-            className="hidden"
-          />
+          {!IS_DESKTOP && (
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".keep,.keepnexus,.shard,.json"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+          )}
         </div>
 
         {error && (

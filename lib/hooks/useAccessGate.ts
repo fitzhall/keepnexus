@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
+import { IS_DESKTOP } from '@/lib/platform'
 
 const ACCESS_KEY = 'keep_access_token'
 
@@ -25,10 +26,13 @@ export function revokeAccess() {
 export function useAccessGate() {
   const router = useRouter()
   const pathname = usePathname()
-  const [authorized, setAuthorized] = useState(false)
-  const [checking, setChecking] = useState(true)
+  const [authorized, setAuthorized] = useState(IS_DESKTOP)
+  const [checking, setChecking] = useState(!IS_DESKTOP)
 
   useEffect(() => {
+    // Desktop always has access
+    if (IS_DESKTOP) return
+
     // Public routes skip the gate
     if (PUBLIC_ROUTES.includes(pathname)) {
       setAuthorized(true)

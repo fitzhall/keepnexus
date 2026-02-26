@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { IS_DESKTOP } from '@/lib/platform'
 
 const GATE_KEY = 'keepnexus-email-submitted'
 
@@ -10,8 +11,12 @@ export default function GatePage() {
   const router = useRouter()
   const [submitted, setSubmitted] = useState(false)
 
-  // If they've already submitted, send them straight through
+  // Desktop skips the gate entirely
   useEffect(() => {
+    if (IS_DESKTOP) {
+      router.replace('/dashboard')
+      return
+    }
     if (localStorage.getItem(GATE_KEY) === 'true') {
       router.replace('/dashboard')
     }

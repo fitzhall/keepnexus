@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
-import { Analytics } from '@vercel/analytics/react'
+import { ConditionalAnalytics } from '@/components/ConditionalAnalytics'
 import './globals.css'
 import { Providers } from './providers'
 
@@ -56,7 +56,7 @@ export default function RootLayout({
         <Providers>
           {children}
         </Providers>
-        <Analytics />
+        <ConditionalAnalytics />
       </body>
     </html>
   )

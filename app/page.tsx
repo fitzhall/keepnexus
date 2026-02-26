@@ -1,6 +1,10 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { IS_DESKTOP } from '@/lib/platform'
 
 export default function HomePage() {
+  if (IS_DESKTOP) redirect('/dashboard')
+
   return (
     <main className="nexus min-h-screen flex items-center">
       <div className="nexus-container">

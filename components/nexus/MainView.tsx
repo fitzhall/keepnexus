@@ -7,6 +7,8 @@ import { calculatePillarReport } from '@/lib/keep-core/keep-score-v2'
 import { PillarHeader } from './PillarHeader'
 import { ThemeToggle } from './ThemeToggle'
 import { InfoTip } from './InfoTip'
+import { IS_DESKTOP } from '@/lib/platform'
+import { saveFileNative } from '@/lib/desktop/file-ops'
 import Link from 'next/link'
 
 type PillarKey = 'K' | 'E_estate' | 'E_continuity' | 'P'
@@ -100,14 +102,23 @@ export function MainView() {
     })
   }
 
-  const handleExport = () => {
+  const handleExport = async () => {
     const json = exportToJSON(setup)
+    const date = new Date().toISOString().split('T')[0]
+    const filename = `${setup.family_name.toLowerCase().replace(/\s+/g, '-')}-${date}${FILE_EXTENSION}`
+
+    // Try native save dialog on desktop
+    if (IS_DESKTOP) {
+      await saveFileNative(json, filename)
+      return
+    }
+
+    // Browser fallback
     const blob = new Blob([json], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
-    const date = new Date().toISOString().split('T')[0]
     link.href = url
-    link.download = `${setup.family_name.toLowerCase().replace(/\s+/g, '-')}-${date}${FILE_EXTENSION}`
+    link.download = filename
     link.click()
     URL.revokeObjectURL(url)
   }
