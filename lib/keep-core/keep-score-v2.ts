@@ -37,9 +37,6 @@ export function calculatePillarReport(shard: LittleShardFile): KEEPPillarReport 
   const kItems: PillarItem[] = [
     { label: 'wallets configured', done: shard.wallets.length > 0, href: '/update/vault' },
     { label: 'keyholders assigned', done: shard.keyholders.length > 0, href: '/update/keyholders' },
-    { label: 'governance rules set', done: shard.governance_rules.length > 0, href: '/dashboard/governator' },
-    { label: 'owner designated', done: shard.keyholders.some(k => k.functional_role === 'owner'), href: '/update/keyholders' },
-    { label: 'protector designated', done: shard.keyholders.some(k => k.functional_role === 'protector'), href: '/update/keyholders' },
   ]
 
   // E -- Estate Integration

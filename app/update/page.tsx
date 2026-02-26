@@ -38,7 +38,6 @@ export default function UpdateMenuPage() {
         { href: '/update/family', label: 'family', description: 'your reserve name' },
         { href: '/update/vault', label: 'vault', description: 'wallets, key setup, custody platform' },
         { href: '/update/keyholders', label: 'keyholders', description: 'who holds keys, owner/signer/protector roles' },
-        { href: '/dashboard/governator', label: 'governance', description: 'rules for access, inheritance, emergency' },
       ],
     },
     {
