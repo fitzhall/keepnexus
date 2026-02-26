@@ -78,12 +78,9 @@ export function MainView() {
   const totalCount = allItems.length
   const pct = totalCount > 0 ? doneCount / totalCount : 0
 
+  const keepScore = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0
   const status = pct >= 0.75 ? 'healthy' : pct >= 0.4 ? 'attention' : 'critical'
-  const statusLabel = pct >= 0.75
-    ? `healthy · ${doneCount}/${totalCount}`
-    : pct >= 0.4
-      ? `needs attention · ${doneCount}/${totalCount}`
-      : `incomplete · ${doneCount}/${totalCount}`
+  const scoreColor = pct >= 0.75 ? 'text-green-500' : pct >= 0.4 ? 'text-yellow-500' : 'text-red-500'
 
   // THAP display
   const thapDisplay = setup.thap.current_hash
@@ -149,14 +146,15 @@ export function MainView() {
 
         <div className="nexus-divider" />
 
-        {/* Shard status bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-1">
-          <div className="nexus-status">
-            <span className={`nexus-status-dot ${status}`} />
-            <span className="text-sm text-zinc-500 dark:text-zinc-400">{statusLabel}</span>
+        {/* KEEP Score */}
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-baseline gap-2">
+            <span className={`text-3xl font-mono font-medium ${scoreColor}`}>{keepScore}</span>
+            <span className="text-xs text-zinc-500 uppercase tracking-wider">keep score</span>
           </div>
-          <div className="text-xs text-zinc-500 font-mono">
-            modified {lastModified} · v{setup.version || '2.0'}
+          <div className="text-right">
+            <div className="text-xs text-zinc-500 font-mono">{doneCount}/{totalCount} configured</div>
+            <div className="text-xs text-zinc-600 dark:text-zinc-500 font-mono">modified {lastModified}</div>
           </div>
         </div>
 
